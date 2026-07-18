@@ -19,6 +19,9 @@ if [ ! -d ".venv" ]; then
 fi
 
 source .venv/bin/activate
+
+# Install PyTorch (CPU-only) primero para evitar descargar ~2GB de CUDA
+pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -q -r requirements.txt
 
 echo ""
