@@ -1,10 +1,15 @@
 """Utility functions for image preprocessing and helpers."""
 
 from pathlib import Path
+import base64
+from typing import TYPE_CHECKING
 
 import cv2
 import numpy as np
 from fastapi import HTTPException
+
+if TYPE_CHECKING:
+    from .detector import Detector
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -73,15 +78,77 @@ def extract_frames(video_path: str, fps_sample: int = 1) -> list[dict]:
     return frames
 
 
-# Reuse the existing model's predict method to avoid circular imports
-# Type hint using string literal to avoid import
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .detector import Detector
+def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray:
+    """Draw bounding boxes on a frame using OpenCV.
+
+    Color transitions smoothly from red (0% confidence) through yellow to green (100%).
+
+    Args:
+        frame: Image as numpy array (BGR).
+        detections: List of detection dicts with bbox, class, confidence.
+
+    Returns:
+        Frame with boxes drawn (BGR).
+    """
+    h, w = frame.shape[:2]
+    for d in detections:
+        x1, y1, x2, y2 = [int(v) for v in d["bbox"]]
+        conf = d["confidence"]
+
+        # Smooth color: red (hue=0) → yellow (hue=60) → green (hue=120)
+        hue = int(conf * 120)
+        color_rgb = cv2.cvtColor(
+            np.uint8([[[hue, 255, 255]]]), cv2.COLOR_HSV2BGR
+        )[0][0]
+        color = (int(color_rgb[0]), int(color_rgb[1]), int(color_rgb[2]))
+
+        # Clamp to frame boundaries
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w, x2), min(h, y2)
+
+        # Bounding box rectangle
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+        # Label background
+        label = f"{d['class']} {conf:.0%}"
+        (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        label_y = max(y1 - 22, 0)
+        cv2.rectangle(frame, (x1, label_y), (x1 + tw + 8, label_y + 20), color, -1)
+
+        # Label text
+        cv2.putText(
+            frame, label, (x1 + 4, label_y + 14),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA
+        )
+
+    return frame
+
+
+def frame_to_base64(frame: np.ndarray, max_size: int = 320) -> str:
+    """Encode a frame as a base64 JPEG thumbnail.
+
+    Args:
+        frame: Image as numpy array (BGR).
+        max_size: Maximum dimension for the thumbnail.
+
+    Returns:
+        Base64-encoded JPEG string with 'data:image/jpeg;base64,' prefix.
+    """
+    h, w = frame.shape[:2]
+    if max(h, w) > max_size:
+        scale = max_size / max(h, w)
+        new_w, new_h = int(w * scale), int(h * scale)
+        frame = cv2.resize(frame, (new_w, new_h))
+
+    _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+    return "data:image/jpeg;base64," + base64.b64encode(buf).decode("utf-8")
 
 
 def process_video_frames(video_path: str, detector: "Detector", fps_sample: int = 1) -> list[dict]:
-    """Extract frames from a video and run detection on each.
+    """Extract frames from a video, run detection, and return annotated images.
+
+    For each frame: runs YOLO detection, draws bounding boxes on the frame,
+    and encodes the result as a base64 JPEG thumbnail.
 
     Args:
         video_path: Path to the video file.
@@ -89,23 +156,30 @@ def process_video_frames(video_path: str, detector: "Detector", fps_sample: int 
         fps_sample: Frames per second to sample.
 
     Returns:
-        List of dicts with timestamp, frame_number, detections, object_count.
+        List of dicts with timestamp, frame_number, detections, object_count,
+        annotated_frame (base64 JPEG data URL).
     """
     frames = extract_frames(video_path, fps_sample)
     results = []
 
     for f in frames:
-        # Write frame to temp file for detection
-        temp_path = f"/tmp/{Path(video_path).stem}_frame{f['frame_number']}.jpg"
-        cv2.imwrite(temp_path, f["frame"])
-        detections = detector.detect(temp_path)
-        Path(temp_path).unlink(missing_ok=True)
+        frame = f["frame"]
+
+        # Run detection directly on array (no disk I/O)
+        detections = detector.detect_array(frame)
+
+        # Draw bounding boxes on the frame
+        annotated = draw_boxes_on_frame(frame.copy(), detections)
+
+        # Encode as base64 thumbnail
+        frame_b64 = frame_to_base64(annotated)
 
         results.append({
             "timestamp": f["timestamp"],
             "frame_number": f["frame_number"],
             "detections": detections,
             "object_count": len(detections),
+            "annotated_frame": frame_b64,
         })
 
     return results

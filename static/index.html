@@ -345,6 +345,37 @@
         }
         .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
 
+        /* Annotated frame image */
+        .frame-card .annotated-frame {
+            width: 100%;
+            display: block;
+            background: #000;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Webcam overlay */
+        .webcam-container {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+        .webcam-container video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+        .webcam-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
         /* Video timeline */
         .video-timeline {
             display: flex;
@@ -575,10 +606,15 @@
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Real-time detection at ~1 FPS. Frames are sent to the server and processed in memory.</p>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 280px;">
-                            <div style="background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;" id="webcamPlaceholder">
-                                <p style="color: var(--text-muted);">📷 Camera off</p>
+                            <div class="webcam-container" id="webcamPlaceholder">
+                                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
+                                    <p style="color: var(--text-muted);">📷 Camera off</p>
+                                </div>
                             </div>
-                            <video id="webcamVideo" autoplay playsinline style="display: none; width: 100%; border-radius: 8px; background: #000;"></video>
+                            <div class="webcam-container" id="webcamContainer" style="display:none;">
+                                <video id="webcamVideo" autoplay playsinline></video>
+                                <canvas id="webcamOverlay"></canvas>
+                            </div>
                         </div>
                         <div style="flex: 1; min-width: 220px;">
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
@@ -686,6 +722,8 @@
         const startWebcamBtn = document.getElementById('startWebcamBtn');
         const stopWebcamBtn = document.getElementById('stopWebcamBtn');
         const webcamVideo = document.getElementById('webcamVideo');
+        const webcamOverlay = document.getElementById('webcamOverlay');
+        const webcamContainer = document.getElementById('webcamContainer');
         const webcamPlaceholder = document.getElementById('webcamPlaceholder');
         const webcamResults = document.getElementById('webcamResults');
         const webcamStatus = document.getElementById('webcamStatus');
@@ -961,10 +999,13 @@
                 const [x1, y1, x2, y2] = d.bbox;
                 const sx = x1 * scale, sy = y1 * scale;
                 const sw = (x2 - x1) * scale, sh = (y2 - y1) * scale;
-                let color = d.confidence >= 0.7 ? '#3fb950' : d.confidence >= 0.4 ? '#d2991d' : '#f85149';
+
+                // Smooth gradient: red (0) → yellow (0.5) → green (1.0)
+                const hue = d.confidence * 120;
+                const color = `hsl(${hue}, 80%, 45%)`;
 
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = Math.max(1.5, sw * 0.005);
                 ctx.strokeRect(sx, sy, sw, sh);
 
                 const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
@@ -1315,6 +1356,16 @@
                 header.className = 'frame-header';
                 header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>Frame ${frame.frame_number} (${frame.object_count})</span>`;
 
+                // Annotated frame image
+                let frameImg = null;
+                if (frame.annotated_frame) {
+                    frameImg = document.createElement('img');
+                    frameImg.className = 'annotated-frame';
+                    frameImg.src = frame.annotated_frame;
+                    frameImg.alt = `Frame at ${frame.timestamp}s`;
+                    frameImg.loading = 'lazy';
+                }
+
                 const body = document.createElement('div');
                 body.className = 'frame-body';
 
@@ -1347,6 +1398,7 @@
                 }
 
                 card.appendChild(header);
+                if (frameImg) card.appendChild(frameImg);
                 card.appendChild(body);
                 fragment.appendChild(card);
             });
@@ -1373,7 +1425,7 @@
                 });
                 mediaStream = stream;
                 webcamVideo.srcObject = stream;
-                webcamVideo.style.display = 'block';
+                webcamContainer.style.display = 'block';
                 webcamPlaceholder.style.display = 'none';
                 startWebcamBtn.disabled = true;
                 stopWebcamBtn.disabled = false;
@@ -1391,7 +1443,7 @@
             if (webcamIntervalId) { clearInterval(webcamIntervalId); webcamIntervalId = null; }
             if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
             webcamVideo.srcObject = null;
-            webcamVideo.style.display = 'none';
+            webcamContainer.style.display = 'none';
             webcamPlaceholder.style.display = 'flex';
             startWebcamBtn.disabled = false;
             stopWebcamBtn.disabled = true;
@@ -1429,6 +1481,46 @@
             const detections = data.detections || [];
             const filtered = detections.filter(d => d.confidence >= currentConfThreshold);
             const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
+
+            // Draw bounding boxes on overlay canvas
+            const cvs = webcamOverlay;
+            const video = webcamVideo;
+            if (cvs && video.videoWidth) {
+                // Match canvas size to displayed video size
+                const rect = video.getBoundingClientRect();
+                cvs.width = rect.width;
+                cvs.height = rect.height;
+                const ctx = cvs.getContext('2d');
+                ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+                // Scale factors from camera resolution to displayed size
+                const sx = rect.width / video.videoWidth;
+                const sy = rect.height / video.videoHeight;
+
+                filtered.forEach(d => {
+                    const [x1, y1, x2, y2] = d.bbox;
+                    const cx = x1 * sx, cy = y1 * sy;
+                    const cw = (x2 - x1) * sx, ch = (y2 - y1) * sy;
+
+                    // Smooth color: red → yellow → green
+                    const hue = d.confidence * 120;
+                    const color = `hsl(${hue}, 80%, 45%)`;
+
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = Math.max(2, cw * 0.006);
+                    ctx.strokeRect(cx, cy, cw, ch);
+
+                    // Label
+                    const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
+                    ctx.font = 'bold 13px -apple-system, sans-serif';
+                    const tw = ctx.measureText(label).width;
+                    const lh = 20;
+                    ctx.fillStyle = color;
+                    ctx.fillRect(cx, Math.max(0, cy - lh), tw + 8, lh);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText(label, cx + 4, Math.max(14, cy - 4));
+                });
+            }
 
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
                 <span style="font-weight:600;font-size:0.88rem;">🎯 ${filtered.length} objects</span>
