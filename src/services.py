@@ -65,7 +65,7 @@ async def retry_with_backoff(
             last_exc = exc
             if attempt < max_retries:
                 delay = min(base_delay * (2 ** attempt), max_delay)
-                # Add jitter: ±25% of delay
+                # Jitter prevents thundering herd when multiple clients retry simultaneously
                 jitter = delay * 0.25 * (2 * random.random() - 1)
                 await asyncio.sleep(delay + jitter)
             else:
@@ -357,6 +357,7 @@ class DetectionService:
                 d.get("bbox", []),
             ])
 
-        csv_path = self.output_dir / f"{task_id}.csv"
+        safe_name = sanitize_filename(f"{task_id}.csv")
+        csv_path = self.output_dir / safe_name
         csv_path.write_text(output.getvalue())
         return str(csv_path)

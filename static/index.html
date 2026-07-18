@@ -808,7 +808,7 @@
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.appendChild(document.createTextNode(str));
-            return div.innerHTML;
+            return div.innerHTML.replace(/'/g, '&#39;');
         }
 
         // API helper — same-origin requests use the HTTP-only cookie set by the server.
@@ -954,19 +954,23 @@
                             <div class="h-meta">${escapeHtml(String(h.fileCount || 0))} files · ${escapeHtml(String(h.objectCount || 0))} objects · ${escapeHtml(h.classes || '')}</div>
                         </div>
                         <div class="h-time">${timeStr}</div>
-                        <button class="btn btn-sm" onclick="removeHistoryItem('${safeId}')">✕</button>
+                        <button class="btn btn-sm" data-id="${safeId}">✕</button>
                     </div>
                 `;
             });
             historyList.innerHTML = html;
 
-            // Click to show details
-            historyList.querySelectorAll('.history-item').forEach(el => {
-                el.addEventListener('click', (e) => {
-                    if (e.target.tagName === 'BUTTON') return;
-                    const type = el.dataset.type;
-                    switchTab(type);
-                });
+            // Click to show details (event delegation)
+            historyList.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-id]');
+                if (!btn) return;
+                const id = btn.dataset.id;
+                const type = btn.dataset.type;
+                if (e.target.closest('.btn-sm')) {
+                    removeHistoryItem(id);
+                    return;
+                }
+                if (type) switchTab(type);
             });
         }
 
@@ -1655,7 +1659,6 @@
                 header.className = 'frame-header';
                 header.innerHTML = `<span>⏱️ ${escapeHtml(String(frame.timestamp))}s</span><span>Frame ${escapeHtml(String(frame.frame_number))} (${escapeHtml(String(frame.object_count))})</span>`;
 
-                // Annotated frame image
                 let frameImg = null;
                 if (frame.annotated_frame) {
                     frameImg = document.createElement('img');
@@ -1781,7 +1784,6 @@
             const filtered = detections.filter(det => det.confidence >= currentConfThreshold);
             const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
 
-            // Draw bounding boxes on overlay canvas
             const cvs = webcamOverlay;
             const video = webcamVideo;
             if (cvs && video.videoWidth) {

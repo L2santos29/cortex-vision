@@ -41,7 +41,6 @@ def validate_image_content(contents: bytes) -> None:
             detail="File too small to be a valid image",
         )
 
-    # Check known magic byte signatures
     for magic, fmt in _IMAGE_MAGIC_BYTES.items():
         if contents[: len(magic)] == magic:
             return
@@ -167,7 +166,6 @@ def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray
         )[0][0]
         color = (int(color_rgb[0]), int(color_rgb[1]), int(color_rgb[2]))
 
-        # Clamp to frame boundaries
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w, x2), min(h, y2)
 
