@@ -593,7 +593,7 @@
                     <span class="brand-badge">Pre-Alpha</span>
                 </div>
             </div>
-            <nav class="sidebar-nav" id="sidebarNav" role="tablist">
+            <nav class="sidebar-nav" id="sidebarNav" role="tablist" aria-label="Main navigation" aria-orientation="vertical">
                 <button class="tab-btn active" data-tab="images" role="tab" aria-selected="true">
                     📸 Images <span class="count" id="imgCount"></span>
                 </button>
@@ -804,6 +804,13 @@
             about: document.getElementById('tab-about'),
         };
 
+        // HTML escape helper to prevent XSS
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
         function switchTab(tabId) {
             tabBtns.forEach(b => {
                 b.classList.toggle('active', b.dataset.tab === tabId);
@@ -932,15 +939,16 @@
                 const date = new Date(h.timestamp);
                 const timeStr = date.toLocaleString();
                 const iconMap = { images: '📸', video: '🎬', webcam: '📹' };
+                const safeId = escapeHtml(h.id || '');
                 html += `
-                    <div class="history-item animate-in" data-id="${h.id}" data-type="${h.type}" data-task="${h.taskId || ''}">
+                    <div class="history-item animate-in" data-id="${safeId}" data-type="${escapeHtml(h.type)}" data-task="${escapeHtml(h.taskId || '')}">
                         <div class="h-icon">${iconMap[h.type] || '📁'}</div>
                         <div class="h-info">
-                            <div class="h-title">${h.summary || h.type}</div>
-                            <div class="h-meta">${h.fileCount || 0} files · ${h.objectCount || 0} objects · ${h.classes || ''}</div>
+                            <div class="h-title">${escapeHtml(h.summary || h.type)}</div>
+                            <div class="h-meta">${escapeHtml(String(h.fileCount || 0))} files · ${escapeHtml(String(h.objectCount || 0))} objects · ${escapeHtml(h.classes || '')}</div>
                         </div>
                         <div class="h-time">${timeStr}</div>
-                        <button class="btn btn-sm" onclick="removeHistoryItem('${h.id}')">✕</button>
+                        <button class="btn btn-sm" onclick="removeHistoryItem('${safeId}')">✕</button>
                     </div>
                 `;
             });
@@ -1067,9 +1075,16 @@
         function handleSelectedFiles(files) {
             if (!files || files.length === 0) return;
             const valid = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+            const maxSize = 10 * 1024 * 1024; // 10MB
             selectedFiles = Array.from(files).filter(f => {
                 const ext = '.' + f.name.split('.').pop().toLowerCase();
                 return valid.includes(ext);
+            }).filter(f => {
+                if (f.size > maxSize) {
+                    console.warn(`File too large: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB > 10 MB)`);
+                    return false;
+                }
+                return true;
             });
             if (selectedFiles.length === 0) {
                 showImgStatus('No valid image files found. Accepted: JPG, PNG, WebP, BMP', 'error');
@@ -1203,7 +1218,7 @@
             let html = '';
             entries.forEach(([cls, count]) => {
                 const pct = (count / maxVal) * 100;
-                html += `<div class="chart-row"><span class="chart-label">${cls}</span><div class="chart-bar-bg"><div class="chart-bar" style="width:${pct}%"></div></div><span class="chart-value">${count}</span></div>`;
+                html += `<div class="chart-row"><span class="chart-label">${escapeHtml(cls)}</span><div class="chart-bar-bg"><div class="chart-bar" style="width:${pct}%"></div></div><span class="chart-value">${escapeHtml(String(count))}</span></div>`;
             });
             document.getElementById(containerId).innerHTML = html;
         }
@@ -1513,6 +1528,11 @@
 
         function handleVideoSelected(file) {
             if (!file) return;
+            const maxVideoSize = 500 * 1024 * 1024; // 500MB
+            if (file.size > maxVideoSize) {
+                showVideoStatus('❌ Video too large (>500MB)', 'error');
+                return;
+            }
             selectedVideo = file;
             videoPreview.style.display = 'block';
             videoEl.src = URL.createObjectURL(file);
@@ -1613,7 +1633,7 @@
 
                 const header = document.createElement('div');
                 header.className = 'frame-header';
-                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>Frame ${frame.frame_number} (${frame.object_count})</span>`;
+                header.innerHTML = `<span>⏱️ ${escapeHtml(String(frame.timestamp))}s</span><span>Frame ${escapeHtml(String(frame.frame_number))} (${escapeHtml(String(frame.object_count))})</span>`;
 
                 // Annotated frame image
                 let frameImg = null;
@@ -1688,7 +1708,7 @@
                 webcamPlaceholder.style.display = 'none';
                 startWebcamBtn.disabled = true;
                 stopWebcamBtn.disabled = false;
-                showWebcamStatus('📷 Camera active <span class="webcam-live-badge">LIVE</span>', 'success');
+                showWebcamStatus('📷 Camera active LIVE', 'success');
                 webcamIntervalId = setInterval(captureAndDetect, 1000);
             } catch (err) {
                 const msg = err.name === 'NotAllowedError' ? 'Camera permission denied.'
@@ -1732,7 +1752,7 @@
                 lastFrameTime = Date.now();
                 renderWebcamResults(data);
             } catch (err) {
-                webcamResults.innerHTML = `<p style="color:var(--red);font-size:0.85rem;">❌ Detection error: ${err.message}</p>`;
+                webcamResults.innerHTML = `<p style="color:var(--red);font-size:0.85rem;">❌ Detection error: ${escapeHtml(err.message)}</p>`;
             } finally { isProcessingFrame = false; }
         }
 
@@ -1782,8 +1802,8 @@
             }
 
             let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                <span style="font-weight:600;font-size:0.88rem;">🎯 ${filtered.length} objects</span>
-                <span class="webcam-timer">⏱️ ${elapsed}s ago</span>
+                <span style="font-weight:600;font-size:0.88rem;">🎯 ${escapeHtml(String(filtered.length))} objects</span>
+                <span class="webcam-timer">⏱️ ${escapeHtml(elapsed)}s ago</span>
             </div>`;
 
             if (filtered.length === 0) {
@@ -1792,12 +1812,12 @@
                 html += '<div>';
                 filtered.slice(0, 10).forEach(det => {
                     html += `<div class="webcam-detection-item animate-up">
-                        <span class="webcam-class">${det.class}</span>
+                        <span class="webcam-class">${escapeHtml(det.class)}</span>
                         <span class="webcam-conf">${(det.confidence * 100).toFixed(1)}%</span>
                     </div>`;
                 });
                 if (filtered.length > 10) {
-                    html += `<p style="color:var(--text-muted);font-size:0.78rem;text-align:center;margin-top:0.2rem;">+ ${filtered.length - 10} more</p>`;
+                    html += `<p style="color:var(--text-muted);font-size:0.78rem;text-align:center;margin-top:0.2rem;">+ ${escapeHtml(String(filtered.length - 10))} more</p>`;
                 }
                 html += '</div>';
             }
@@ -1805,7 +1825,7 @@
         }
 
         function showWebcamStatus(msg, type) {
-            webcamStatus.innerHTML = msg;
+            webcamStatus.textContent = msg;
             webcamStatus.className = 'webcam-status ' + type;
         }
 

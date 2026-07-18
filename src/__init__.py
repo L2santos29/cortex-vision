@@ -15,11 +15,14 @@ Or via CLI:
 
 from .detector import Detector
 from .pipeline import BatchPipeline
+from .services import DetectionService, sanitize_filename
 from .utils import process_video_frames, extract_frames
 
 __all__ = [
     "Detector",
     "BatchPipeline",
+    "DetectionService",
+    "sanitize_filename",
     "process_video_frames",
     "extract_frames",
 ]

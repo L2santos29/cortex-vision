@@ -15,28 +15,19 @@ class BatchPipeline:
     """
 
     def __init__(self, detector: Detector) -> None:
-        """Store a configured Detector instance for batch processing.
+        """Prepare the pipeline with a shared detector instance.
 
-        The pipeline coordinates detection, aggregation, and statistics
-        so that callers don't need to manage per-file result merging.
-
-        Args:
-            detector: Configured Detector instance.
+        The pipeline coordinates detection across multiple images so callers
+        don't manage per-file result merging. The detector is reused for all
+        images in the batch.
         """
         self.detector = detector
 
     def process(self, image_paths: list[str]) -> list[dict]:
         """Run detection on every image path and collect per-file results.
 
-        Each result dict carries the image path, the list of detections,
-        and a convenience count.  This method is intentionally a simple
-        loop so it can be safely offloaded to a thread pool.
-
-        Args:
-            image_paths: List of paths to image files.
-
-        Returns:
-            List of per-image result dicts.
+        This method iterates sequentially and can be safely offloaded to a
+        thread pool via asyncio.to_thread() since it performs no async I/O.
         """
         results = []
         for path in image_paths:
@@ -49,17 +40,10 @@ class BatchPipeline:
         return results
 
     def aggregate(self, per_file_results: list[dict]) -> list[dict]:
-        """Flatten per-file results into a single sorted detection list.
+        """Flatten per-file results into a single detection list sorted by confidence.
 
-        Each detection is enriched with its source image path so downstream
-        consumers can trace results back to origin files.  The list is
-        sorted by confidence (highest first) for convenient display.
-
-        Args:
-            per_file_results: Output from self.process().
-
-        Returns:
-            Flat list of detection dicts with image source.
+        Each detection dict is enriched with the source image path so consumers
+        can trace results back to origin files.
         """
         aggregated = []
         for file_result in per_file_results:
@@ -75,17 +59,11 @@ class BatchPipeline:
         return aggregated
 
     def stats(self, aggregated: list[dict]) -> dict:
-        """Compute per-class counts and summary statistics (used by /v1/upload/batch).
+        """Compute per-class counts and summary statistics.
 
-        Aggregated detection lists can be large; this method condenses them
-        into a lightweight summary: total detections, unique class count,
-        per-class histogram, and the top-5 most frequent classes.
-
-        Args:
-            aggregated: Output from self.aggregate().
-
-        Returns:
-            Dict with totals, per-class counts, and confidence stats.
+        Returns total detections, unique class count, a per-class histogram,
+        and the top-5 most frequent classes — useful for the batch results
+        dashboard and CSV export.
         """
         class_counts = {}
         total = len(aggregated)

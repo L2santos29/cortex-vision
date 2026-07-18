@@ -108,3 +108,37 @@ def test_detect_array_handles_empty_array(mock_yolo):
     empty_img = np.empty((0, 0, 3), dtype=np.uint8)
     detections = detector.detect_array(empty_img)
     assert detections == []
+
+
+def test_detect_raises_on_nonexistent_file():
+    """detect raises FileNotFoundError for missing files (regression test)."""
+    from src.detector import Detector
+
+    detector = Detector()
+    with pytest.raises(FileNotFoundError, match="not found"):
+        detector.detect("/nonexistent/path/image.jpg")
+
+
+def test_parse_results_empty_boxes():
+    """_parse_results handles None boxes gracefully (edge case)."""
+    from src.detector import Detector
+    from tests.conftest import MockResults
+
+    detector = Detector()
+    results = [MockResults(names={0: "person"}, boxes_data=None)]
+    parsed = detector._parse_results(results)
+    assert parsed == []
+
+
+def test_parse_results_multiple_results():
+    """_parse_results handles multiple YOLO result objects (regression)."""
+    from src.detector import Detector
+    from tests.conftest import MockResults
+
+    detector = Detector()
+    results = [
+        MockResults(names={0: "person"}, boxes_data=[(0, 0.95, [0, 0, 10, 10])]),
+        MockResults(names={0: "person"}, boxes_data=[(0, 0.90, [5, 5, 15, 15])]),
+    ]
+    parsed = detector._parse_results(results)
+    assert len(parsed) == 2

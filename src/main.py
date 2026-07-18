@@ -1,13 +1,11 @@
 """Cortex-Vision main entry point — FastAPI application."""
 
-import asyncio
-import csv
-import io
 import logging
-import re
+import statistics
 import time
 import uuid
 from collections import defaultdict
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 import cv2
@@ -15,7 +13,7 @@ import numpy as np
 from fastapi import BackgroundTasks, FastAPI, File, UploadFile, Depends, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
 from pydantic import ValidationError
@@ -25,11 +23,11 @@ from starlette.requests import Request
 
 from .detector import Detector
 from .pipeline import BatchPipeline
+from .services import DetectionService, sanitize_filename
 from .utils import (
     ALLOWED_VIDEO_EXTENSIONS,
     MAX_VIDEO_SIZE,
     process_video_frames,
-    validate_image,
 )
 
 # ---------------------------------------------------------------------------
@@ -69,7 +67,18 @@ except ValidationError as exc:
 # ---------------------------------------------------------------------------
 # App
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Cortex-Vision", version="0.1.0")
+# ---- HTTPS startup check (SEC-10) ----
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
+    """Application lifespan — startup/shutdown hooks."""
+    logger.warning(
+        "Cortex-Vision is starting without HTTPS. In production, "
+        "deploy behind a TLS-terminating reverse proxy (nginx, Caddy, Traefik)."
+    )
+    yield
+
+
+app = FastAPI(title="Cortex-Vision", version="0.1.0", lifespan=lifespan)
 
 # Compression (PER-07)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -161,38 +170,74 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestIDMiddleware)
 
-# ---- Directories ----
-UPLOAD_DIR = Path(settings.upload_dir)
-OUTPUT_DIR = Path(settings.output_dir)
-UPLOAD_DIR.mkdir(exist_ok=True)
-OUTPUT_DIR.mkdir(exist_ok=True)
+# ---- Metrics (MON-03) ----
+REQUEST_COUNT: dict[str, int] = defaultdict(int)
+REQUEST_LATENCY: dict[str, list[float]] = defaultdict(list)
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.time()
+        route = request.url.path
+        response = await call_next(request)
+        latency = time.time() - start
+        REQUEST_COUNT[route] += 1
+        REQUEST_LATENCY[route].append(latency)
+        # Keep only last 1000 latency measurements per route
+        if len(REQUEST_LATENCY[route]) > 1000:
+            REQUEST_LATENCY[route] = REQUEST_LATENCY[route][-1000:]
+        return response
+
+
+app.add_middleware(MetricsMiddleware)
+
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus-compatible metrics endpoint."""
+    lines = [
+        "# HELP cortex_vision_request_count Total request count by route",
+        "# TYPE cortex_vision_request_count counter",
+    ]
+    for route, count in sorted(REQUEST_COUNT.items()):
+        lines.append(f'cortex_vision_request_count{{route="{route}"}} {count}')
+
+    lines.append("# HELP cortex_vision_request_latency_seconds Request latency by route")
+    lines.append("# TYPE cortex_vision_request_latency_seconds gauge")
+    for route, latencies in sorted(REQUEST_LATENCY.items()):
+        if latencies:
+            avg = statistics.mean(latencies)
+            lines.append(
+                f'cortex_vision_request_latency_seconds{{route="{route}",quantile="avg"}} {avg:.4f}'
+            )
+            if len(latencies) >= 2:
+                p99 = sorted(latencies)[int(len(latencies) * 0.99)]
+                lines.append(
+                    f'cortex_vision_request_latency_seconds{{route="{route}",quantile="p99"}} {p99:.4f}'
+                )
+
+    return Response(content="\n".join(lines) + "\n", media_type="text/plain")
+
 
 # ---- Engine ----
 detector = Detector(model_name=settings.yolo_model)
 pipeline = BatchPipeline(detector)
 
-# In-memory batch result store (production: Redis/DB)
-batch_results: dict[str, dict] = {}
+# ---- Service layer ----
+service = DetectionService(
+    detector=detector,
+    pipeline=pipeline,
+    upload_dir=settings.upload_dir,
+    output_dir=settings.output_dir,
+)
+
+# ---- Named constants ----
+DEFAULT_PAGINATION_LIMIT = 100
 
 # Serve static files
 static_dir = Path(__file__).parent.parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-
-# ---- Helpers ----
-def sanitize_filename(filename: str) -> str:
-    """Remove path separators and dangerous characters from a filename."""
-    safe = Path(filename).name
-    safe = re.sub(r"[^\w.\- ]", "_", safe)
-    return safe[:128]
-
-
-def _evict_oldest_batch() -> None:
-    """Remove oldest entry when batch_results exceeds the limit (ARC-08)."""
-    if len(batch_results) >= settings.max_batch_results:
-        oldest = min(batch_results.keys(), key=lambda k: batch_results[k].get("_ts", 0))
-        del batch_results[oldest]
 
 
 # ---------------------------------------------------------------------------
@@ -225,20 +270,19 @@ async def upload_image(
 ) -> JSONResponse:
     """Upload a single image and get detection results."""
     contents = await file.read()
-    validate_image(file.filename or "unknown", len(contents))
+    service.validate_image(file.filename or "unknown", len(contents))
 
-    safe_name = sanitize_filename(file.filename or "unknown")
-    image_path = UPLOAD_DIR / f"{uuid.uuid4().hex}_{safe_name}"
+    image_path = service.get_upload_path(file.filename or "unknown")
 
     try:
-        image_path.write_bytes(contents)
+        service.save_upload(contents, image_path)
     except OSError as exc:
         logger.error("Failed to write uploaded image %s: %s", image_path, exc)
         return JSONResponse({"error": "Failed to save uploaded file"}, status_code=500)
 
     try:
-        results = await asyncio.to_thread(detector.detect, str(image_path))
-    except Exception as exc:
+        results = await service.run_detection(str(image_path))
+    except (ValueError, RuntimeError, OSError) as exc:
         logger.error("Detection failed for %s: %s", image_path, exc)
         return JSONResponse({"error": "Detection failed"}, status_code=500)
 
@@ -258,13 +302,12 @@ async def upload_batch(
 
     for file in files:
         contents = await file.read()
-        validate_image(file.filename or "unknown", len(contents))
+        service.validate_image(file.filename or "unknown", len(contents))
 
-        safe_name = sanitize_filename(file.filename or "unknown")
-        image_path = UPLOAD_DIR / f"{task_id}_{safe_name}"
+        image_path = service.get_upload_path(file.filename or "unknown")
 
         try:
-            image_path.write_bytes(contents)
+            service.save_upload(contents, image_path)
         except OSError as exc:
             logger.error("Failed to write batch file %s: %s", image_path, exc)
             continue
@@ -272,7 +315,7 @@ async def upload_batch(
         file_paths.append(str(image_path))
 
     # Schedule background processing (PER-02)
-    background_tasks.add_task(_process_batch, task_id, file_paths)
+    background_tasks.add_task(service.process_batch, task_id, file_paths)
 
     return JSONResponse(
         {
@@ -281,28 +324,6 @@ async def upload_batch(
         },
         status_code=201,
     )
-
-
-async def _process_batch(task_id: str, file_paths: list[str]) -> None:
-    """Background task: run detection and store results."""
-    logger.info("Batch %s: processing %d files", task_id, len(file_paths))
-    try:
-        results = await asyncio.to_thread(pipeline.process, file_paths)
-        aggregated = pipeline.aggregate(results)
-        computed_stats = pipeline.stats(aggregated)
-
-        _evict_oldest_batch()
-
-        batch_results[task_id] = {
-            "files_processed": len(file_paths),
-            "detections": aggregated,
-            "per_file": results,
-            "stats": computed_stats,
-            "_ts": time.time(),
-        }
-        logger.info("Batch %s: completed (%d objects)", task_id, len(aggregated))
-    except Exception as exc:
-        logger.error("Batch %s failed: %s", task_id, exc)
 
 
 @app.post("/v1/upload/video", status_code=201)
@@ -325,7 +346,7 @@ async def upload_video(
         )
 
     video_id = uuid.uuid4().hex
-    video_path = UPLOAD_DIR / f"{video_id}_{safe_name}"
+    video_path = service.upload_dir / f"{video_id}_{safe_name}"
     contents = await file.read()
 
     if len(contents) > MAX_VIDEO_SIZE:
@@ -387,7 +408,7 @@ async def detect_frame(
     if img is None:
         return JSONResponse({"error": "Invalid image data"}, status_code=400)
 
-    detections = await asyncio.to_thread(detector.detect_array, img)
+    detections = await service.run_detection_on_array(img)
 
     return JSONResponse({
         "detections": detections,
@@ -399,15 +420,16 @@ async def detect_frame(
 @app.get("/v1/results/{task_id}")
 async def get_results(
     task_id: str,
-    limit: int = 100,
+    limit: int = DEFAULT_PAGINATION_LIMIT,
     offset: int = 0,
     api_key: str = Depends(verify_api_key),
 ) -> JSONResponse:
     """Get batch processing results with pagination (PER-03)."""
-    if task_id not in batch_results:
+    result = service.get_batch_result(task_id)
+    if result is None:
         return JSONResponse({"error": "Task not found"}, status_code=404)
 
-    result = dict(batch_results[task_id])
+    result = dict(result)
     detections = result.get("detections", [])
     result["detections"] = detections[offset : offset + limit]
     result["total"] = len(detections)
@@ -422,24 +444,9 @@ async def export_csv(
     api_key: str = Depends(verify_api_key),
 ) -> FileResponse | JSONResponse:
     """Export batch results as CSV."""
-    if task_id not in batch_results:
+    csv_path = service.export_batch_csv(task_id)
+    if csv_path is None:
         return JSONResponse({"error": "Task not found"}, status_code=404)
-
-    detections = batch_results[task_id]["detections"]
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["image", "class", "confidence", "bbox"])
-
-    for d in detections:
-        writer.writerow([
-            d.get("image", ""),
-            d.get("class", ""),
-            d.get("confidence", 0),
-            d.get("bbox", []),
-        ])
-
-    csv_path = OUTPUT_DIR / f"{task_id}.csv"
-    csv_path.write_text(output.getvalue())
 
     return FileResponse(csv_path, filename=f"cortex-vision-{task_id}.csv")
 

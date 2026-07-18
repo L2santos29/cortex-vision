@@ -115,3 +115,38 @@ def test_draw_boxes_on_frame_returns_frame():
     result = draw_boxes_on_frame(frame, detections)
     assert isinstance(result, np.ndarray)
     assert result.shape == (480, 640, 3)
+
+
+def test_validate_image_zero_size():
+    """Zero-size file should pass (no objects in image, edge case)."""
+    validate_image("empty.jpg", 0)
+
+
+def test_frame_to_base64_minimal_frame():
+    """frame_to_base64 handles minimal (1x1) frame without crashing (edge case)."""
+    frame = np.zeros((1, 1, 3), dtype=np.uint8)
+    result = frame_to_base64(frame)
+    assert isinstance(result, str)
+    assert result.startswith("data:image/jpeg;base64,")
+
+
+def test_draw_boxes_empty_detections():
+    """draw_boxes_on_frame with no detections returns unmodified frame."""
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    result = draw_boxes_on_frame(frame, [])
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (480, 640, 3)
+    # Frame should be unchanged
+    assert np.array_equal(result, frame)
+
+
+def test_draw_boxes_clamps_to_frame():
+    """draw_boxes_on_frame clamps coordinates outside frame boundaries."""
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    detections = [
+        {"class": "person", "confidence": 0.95, "bbox": [-50, -50, 500, 500]},
+    ]
+    result = draw_boxes_on_frame(frame, detections)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (100, 100, 3)
+    # Should not crash with out-of-bounds coordinates

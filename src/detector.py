@@ -13,17 +13,21 @@ class Detector:
     """
 
     def __init__(self, model_name: str = "yolov8n.pt") -> None:
-        """Initialize detector with a YOLOv8 model variant.
+        """Configure detector with a YOLOv8 model variant.
+
+        The model file is downloaded automatically by Ultralytics on first use
+        if not present locally. Lazy-loading defers download until the first
+        detect/detect_array call.
 
         Args:
-            model_name: YOLOv8 model variant (n, s, m, l, x).
-                        Defaults to 'yolov8n.pt' (nano, fastest).
+            model_name: YOLOv8 model variant. Nano (n) is fastest; use
+                        s/m/l/x for better accuracy at the cost of speed.
         """
         self.model_name = model_name
         self._model = None
 
     @property
-    def model(self):
+    def model(self) -> YOLO:
         """Lazy-load the YOLO model."""
         if self._model is None:
             self._model = YOLO(self.model_name)
@@ -49,13 +53,14 @@ class Detector:
         return detections
 
     def detect(self, image_path: str) -> list[dict]:
-        """Run object detection on a single image.
+        """Run object detection on a single image file.
 
-        Args:
-            image_path: Path to the image file.
+        Reads the image from disk, runs YOLO inference, and returns formatted
+        results. Use detect_array() instead when the image is already in memory
+        to avoid disk I/O.
 
-        Returns:
-            List of detection dicts with keys: class, confidence, bbox.
+        Raises:
+            FileNotFoundError: If the image path does not exist.
         """
         if not Path(image_path).exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
@@ -65,11 +70,8 @@ class Detector:
     def detect_array(self, img: np.ndarray) -> list[dict]:
         """Run object detection on a numpy image array (no disk I/O).
 
-        Args:
-            img: Image as numpy array (BGR format from OpenCV).
-
-        Returns:
-            List of detection dicts with keys: class, confidence, bbox.
+        Useful for webcam frames or in-memory images where writing to disk
+        would add latency. Expects BGR format from OpenCV.
         """
         results = self.model(img, verbose=False)
         return self._parse_results(results)

@@ -172,6 +172,90 @@ The following environment variables can be used to configure the application:
 | `OUTPUT_DIR` | `output` | Directory for output files |
 | `YOLO_MODEL` | `yolov8n.pt` | YOLOv8 model variant |
 
+### Environment File (`.env.example`)
+
+A `.env.example` file is included in the repository. Copy it to `.env` and adjust values:
+
+```bash
+cp .env.example .env
+```
+
+The application reads environment variables from `.env` automatically via `pydantic-settings`. All values in `.env.example` are safe to commit — it contains only placeholder keys for local development.
+
+> **Security note:** Never commit the actual `.env` file. Add it to `.gitignore` if it isn't already.
+
+---
+
+## Staging Environment
+
+For a staging deployment (e.g., on a VM or cloud instance):
+
+```bash
+# Clone and set up
+git clone https://github.com/L2santos29/cortex-vision.git
+cd cortex-vision
+
+# Create .env with staging-specific values
+cp .env.example .env
+# Edit .env: set API_KEY, tighten CORS_ORIGINS, etc.
+
+# Build and run via Docker
+docker build -t cortex-vision:staging .
+docker run -d \
+  --name cortex-vision-staging \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  --env-file .env \
+  cortex-vision:staging
+```
+
+### Staging Checklist
+
+- [ ] Generate a strong `API_KEY` (e.g., `openssl rand -hex 32`)
+- [ ] Restrict `CORS_ORIGINS` to the staging domain
+- [ ] Use a TLS-terminating reverse proxy (nginx, Caddy, Traefik)
+- [ ] Set `UPLOAD_DIR` / `OUTPUT_DIR` to persistent volumes
+- [ ] Configure logging to a file or external aggregator
+- [ ] Monitor `/health` and `/metrics` endpoints
+
+---
+
+## Rollback Approach
+
+### Code Rollback
+
+```bash
+# Roll back to a specific tag or commit
+git checkout v0.1.0
+docker build -t cortex-vision:v0.1.0 .
+docker stop cortex-vision-staging
+docker run -d \
+  --name cortex-vision-staging \
+  --restart unless-stopped \
+  -p 8000:8000 \
+  --env-file .env \
+  cortex-vision:v0.1.0
+```
+
+### Docker Image Rollback
+
+If using a container registry with tagged images:
+
+```bash
+docker pull myregistry/cortex-vision:v0.1.0
+docker stop cortex-vision-staging
+docker run -d --name cortex-vision-staging --restart unless-stopped -p 8000:8000 --env-file .env myregistry/cortex-vision:v0.1.0
+```
+
+### Rollback Considerations
+
+- **Database:** The service is stateless with respect to detections — no database migrations to revert.
+- **Uploaded files:** Rollback does not affect previously uploaded files stored in `UPLOAD_DIR` / `OUTPUT_DIR`.
+- **Client compatibility:** API changes are versioned under `/v1/`. A rollback preserves backward compatibility for existing clients.
+- **Health check:** Always verify `/health` after rollback before directing traffic.
+
+---
+
 ## License
 
 MIT — See [LICENSE](LICENSE)

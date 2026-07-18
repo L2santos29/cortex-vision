@@ -22,14 +22,11 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
 def validate_image(filename: str, size: int) -> None:
-    """Validate uploaded image file.
+    """Validate an uploaded image file's extension and size.
 
-    Args:
-        filename: Original filename.
-        size: File size in bytes.
-
-    Raises:
-        HTTPException: If validation fails.
+    Rejects unsupported formats early to avoid feeding garbage to the
+    detection pipeline. Raises HTTPException (400) with a user-friendly
+    message on failure.
     """
     ext = Path(filename).suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -48,12 +45,9 @@ MAX_VIDEO_SIZE = 500 * 1024 * 1024  # 500MB
 def extract_frames(video_path: str, fps_sample: int = 1) -> list[dict]:
     """Extract frames from a video at a given sampling rate.
 
-    Args:
-        video_path: Path to the video file.
-        fps_sample: Number of frames per second to extract (default 1).
-
-    Returns:
-        List of dicts with 'frame' (ndarray), 'timestamp' (float), 'frame_number' (int).
+    Sampling at 1 FPS by default to keep processing reasonable for
+    long videos. Uses a fallback FPS of 30 if the video metadata is
+    missing or corrupted.
     """
     try:
         cap = cv2.VideoCapture(video_path)
@@ -88,16 +82,11 @@ def extract_frames(video_path: str, fps_sample: int = 1) -> list[dict]:
 
 
 def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray:
-    """Draw bounding boxes on a frame using OpenCV.
+    """Draw bounding boxes on a frame with confidence-based color coding.
 
-    Color transitions smoothly from red (0% confidence) through yellow to green (100%).
-
-    Args:
-        frame: Image as numpy array (BGR).
-        detections: List of detection dicts with bbox, class, confidence.
-
-    Returns:
-        Frame with boxes drawn (BGR).
+    Colors transition smoothly from red (0%) through yellow to green (100%)
+    so users can visually assess detection quality at a glance. Box
+    coordinates are clamped to frame boundaries to prevent overflow.
     """
     h, w = frame.shape[:2]
     for d in detections:
@@ -115,16 +104,13 @@ def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(w, x2), min(h, y2)
 
-        # Bounding box rectangle
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
-        # Label background
         label = f"{d['class']} {conf:.0%}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         label_y = max(y1 - 22, 0)
         cv2.rectangle(frame, (x1, label_y), (x1 + tw + 8, label_y + 20), color, -1)
 
-        # Label text
         cv2.putText(
             frame, label, (x1 + 4, label_y + 14),
             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA
@@ -134,14 +120,11 @@ def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray
 
 
 def frame_to_base64(frame: np.ndarray, max_size: int = THUMBNAIL_MAX_SIZE) -> str:
-    """Encode a frame as a base64 JPEG thumbnail.
+    """Encode a frame as a base64 JPEG data URL for inline display.
 
-    Args:
-        frame: Image as numpy array (BGR).
-        max_size: Maximum dimension for the thumbnail.
-
-    Returns:
-        Base64-encoded JPEG string with 'data:image/jpeg;base64,' prefix.
+    Downscales large frames to max_size on the longest edge to reduce
+    payload size before encoding. The resulting string is suitable for
+    use as an <img> src attribute.
     """
     h, w = frame.shape[:2]
     if max(h, w) > max_size:
@@ -154,19 +137,11 @@ def frame_to_base64(frame: np.ndarray, max_size: int = THUMBNAIL_MAX_SIZE) -> st
 
 
 def process_video_frames(video_path: str, detector: "Detector", fps_sample: int = 1) -> list[dict]:
-    """Extract frames from a video, run detection, and return annotated images.
+    """Extract video frames, run detection on each, and produce annotated thumbnails.
 
-    For each frame: runs YOLO detection, draws bounding boxes on the frame,
-    and encodes the result as a base64 JPEG thumbnail.
-
-    Args:
-        video_path: Path to the video file.
-        detector: Detector instance.
-        fps_sample: Frames per second to sample.
-
-    Returns:
-        List of dicts with timestamp, frame_number, detections, object_count,
-        annotated_frame (base64 JPEG data URL).
+    Combines frame extraction, YOLO inference, bounding box rendering,
+    and base64 encoding into a single pipeline. Returns structured frame
+    data with timestamps suitable for the video analysis UI.
     """
     frames = extract_frames(video_path, fps_sample)
     results = []
@@ -177,10 +152,8 @@ def process_video_frames(video_path: str, detector: "Detector", fps_sample: int 
         # Run detection directly on array (no disk I/O)
         detections = detector.detect_array(frame)
 
-        # Draw bounding boxes on the frame
         annotated = draw_boxes_on_frame(frame.copy(), detections)
 
-        # Encode as base64 thumbnail
         frame_b64 = frame_to_base64(annotated)
 
         results.append({
