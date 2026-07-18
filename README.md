@@ -6,22 +6,26 @@
 [![Status](https://img.shields.io/badge/Status-Pre--Alpha-FF6B35)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**Object Recognition SaaS with Batch Processing and LLM-Powered Scene Understanding**
+**Object Recognition Platform** — Upload images or videos, or use your webcam. YOLOv8 detects objects in real time with bounding boxes, confidence scores, and batch processing.
 
-> Upload images → YOLOv8 detects objects → batch pipeline processes hundreds of images → web dashboard shows results. Full-stack: FastAPI backend + web frontend + LLM integration.
+> Full-stack: FastAPI backend + vanilla JS frontend + YOLOv8 inference.
 
 ---
 
-## 🎯 What is Cortex-Vision?
+## ✨ Features
 
-Cortex-Vision is an end-to-end object recognition platform built around a core idea: **CV + LLM orchestration as a service.**
-
-- **Upload** one or hundreds of images via web UI or REST API
-- **Detect** objects using YOLOv8 (COCO dataset — 80 classes)
-- **Process in batch** with a configurable pipeline (extraction, filtering, aggregation)
-- **Describe** scenes with LLM integration for richer results
-- **Export** results as CSV/JSON reports
-- **Deploy** with a single Docker command
+| Feature | Description |
+|---------|-------------|
+| **📸 Batch Image Analysis** | Upload single or multiple images (up to 500+). Each image is processed with bounding boxes drawn directly on the preview. |
+| **🎬 Video Analysis** | Upload MP4, AVI, MOV, MKV, or WebM. Video is sampled at 1 FPS, each frame is analyzed with bounding boxes overlaid. Interactive timeline for quick navigation. |
+| **📹 Live Webcam** | Start your camera and see detections update every second. Bounding boxes are drawn live over the video feed. |
+| **📊 Class Distribution Chart** | Collapsible bar chart showing detected class frequency with gradient bars (red → yellow → green). |
+| **🎚️ Confidence Filter** | Slider to dynamically hide/show detections below a confidence threshold. |
+| **📥 Export** | Download results as CSV or download individual annotated images with bounding boxes. |
+| **📋 Session History** | Past detection sessions are saved in your browser (localStorage). Browse and revisit them anytime. |
+| **🌙☀️ Theme Toggle** | Switch between dark and light themes. Preference is persisted across sessions. |
+| **⌨️ Keyboard Shortcuts** | `Space` (webcam), `E` (export), `R` (clear), `1`-`5` (tab navigation). |
+| **🎯 Sidebar Navigation** | Tab-based layout with isolated sections for Images, Video, Webcam, History, and About. |
 
 ---
 
@@ -31,27 +35,43 @@ Cortex-Vision is an end-to-end object recognition platform built around a core i
 |-------|------|
 | **Object Detection** | YOLOv8 (Ultralytics) |
 | **Backend** | FastAPI + Python 3.12+ |
-| **LLM Integration** | LangChain (optional scene description) |
-| **Frontend** | HTML/CSS/JS (vanilla, no framework) |
-| **Data Processing** | NumPy, OpenCV, Pillow |
-| **Deployment** | Docker, Docker Compose |
+| **Frontend** | Vanilla HTML/CSS/JS (no framework) — canvas-based rendering with bounding boxes |
+| **Image/Video Processing** | OpenCV, NumPy |
+| **Deployment** | Docker |
 
 ---
 
 ## 🚀 Quick Start
+
+### Using Make (recommended)
+
+```bash
+git clone https://github.com/L2santos29/cortex-vision.git
+cd cortex-vision
+make run
+```
+
+The Makefile automatically creates a virtual environment and installs dependencies. Open **http://localhost:8000**.
+
+### Manual
 
 ```bash
 # Clone
 git clone https://github.com/L2santos29/cortex-vision.git
 cd cortex-vision
 
-# Install
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install PyTorch (CPU-only, no CUDA required)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining dependencies
 pip install -r requirements.txt
 
 # Run
 python -m src.main
-
-# Open http://localhost:8000
 ```
 
 ### Docker
@@ -68,37 +88,20 @@ docker run -p 8000:8000 cortex-vision
 ```
 cortex-vision/
 ├── src/
-│   ├── main.py          # FastAPI app entry point
-│   ├── detector.py       # YOLOv8 inference engine
-│   ├── pipeline.py       # Batch processing pipeline
-│   └── utils.py          # Image preprocessing, helpers
+│   ├── main.py          # FastAPI app — routes, webcam endpoint
+│   ├── detector.py       # YOLOv8 inference engine (detect + detect_array)
+│   ├── pipeline.py       # Batch processing and aggregation
+│   └── utils.py          # Validation, image preprocessing, video frame extraction
 ├── static/
-│   └── index.html        # Web UI frontend
+│   └── index.html        # Full web UI — tabs, canvas, webcam, history
 ├── tests/
 │   └── test_detector.py
 ├── scripts/
-│   └── run.sh
+│   └── run.sh            # Quick start helper
+├── Makefile              # Entry point: make run, make test, make clean
 ├── requirements.txt
 ├── Dockerfile
 └── README.md
-```
-
----
-
-## 📊 Batch Processing Pipeline
-
-```
-User uploads N images
-        ↓
-[Preprocessing] → Resize, validate, normalize
-        ↓
-[Detection] → YOLOv8 inference on each image
-        ↓
-[Aggregation] → Collect results (class, confidence, count, bbox)
-        ↓
-[LLM Description] → (Optional) Scene-level description per image
-        ↓
-[Export] → CSV/JSON report + annotated images
 ```
 
 ---
@@ -109,9 +112,35 @@ User uploads N images
 |--------|------|-------------|
 | `POST` | `/upload` | Upload single image |
 | `POST` | `/upload/batch` | Upload multiple images (batch) |
-| `GET` | `/results/{task_id}` | Get results for a batch job |
-| `GET` | `/export/{task_id}` | Export results as CSV |
+| `POST` | `/upload/video` | Upload video — returns per-frame detections with annotated frame images |
+| `POST` | `/detect/frame` | Receive a webcam frame and run detection (no disk I/O) |
+| `GET` | `/results/{task_id}` | Get batch image results |
+| `GET` | `/export/{task_id}` | Export batch results as CSV |
 | `GET` | `/health` | Health check |
+
+---
+
+## 🧪 Quick API Tests
+
+```bash
+# Health
+curl http://localhost:8000/health
+
+# Upload image
+curl -X POST -F "file=@image.jpg" http://localhost:8000/upload
+
+# Batch upload
+curl -X POST -F "files=@img1.jpg" -F "files=@img2.jpg" http://localhost:8000/upload/batch
+
+# Video upload
+curl -X POST -F "file=@video.mp4" http://localhost:8000/upload/video
+
+# Webcam frame
+curl -X POST -F "file=@frame.jpg" http://localhost:8000/detect/frame
+
+# Export CSV
+curl http://localhost:8000/export/<task_id> -o results.csv
+```
 
 ---
 
@@ -119,13 +148,15 @@ User uploads N images
 
 - Python 3.12+
 - 4GB+ RAM recommended (YOLOv8 inference)
-- GPU optional (auto-detected if available)
+- No GPU required (CPU-only PyTorch, works on any machine)
+- Webcam required for live detection feature
+- Tested on Linux. Windows/macOS should work with minor adjustments.
 
 ---
 
 ## 🏗️ Status
 
-**Pre-Alpha** — Core detection pipeline functional. Currently implementing batch processing UI and LLM integration layer.
+**Pre-Alpha** — Core detection pipeline is functional with all three input modes (images, video, webcam). UI is fully interactive with bounding boxes, filters, timeline, and history. Areas for improvement: authentication, rate limiting, persistent storage, and comprehensive test coverage.
 
 ---
 
