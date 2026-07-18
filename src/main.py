@@ -420,11 +420,8 @@ async def detect_frame(
     if len(contents) > MAX_FRAME_SIZE:
         return JSONResponse({"error": "Frame too large (>5MB)"}, status_code=400)
 
-    # Validate content type if available
-    if file.content_type and file.content_type not in ("image/jpeg", "image/png", "image/webp"):
-        return JSONResponse({"error": "Unsupported content type"}, status_code=400)
-
-    # Decode frame with error handling (ERR-01)
+    # Decode frame — cv2 validates the actual image data (Content-Type header from
+    # FormData blobs is unreliable across browsers; real validation is in imdecode)
     try:
         nparr = np.frombuffer(contents, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
