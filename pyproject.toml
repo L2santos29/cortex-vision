@@ -35,6 +35,9 @@ dependencies = [
 Homepage = "https://github.com/L2santos29/cortex-vision"
 Repository = "https://github.com/L2santos29/cortex-vision.git"
 
+[project.scripts]
+cortex-vision = "src.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src", "src.*"]
