@@ -811,17 +811,8 @@
             return div.innerHTML;
         }
 
-        // API helper — reads config injected by the server
-        function apiKey() {
-            return (window.CORTEX_CONFIG && window.CORTEX_CONFIG.apiKey) || '';
-        }
-
-        function apiHeaders() {
-            const h = {'Content-Type': 'application/json'};
-            if (apiKey()) h['X-API-Key'] = apiKey();
-            return h;
-        }
-
+        // API helper — same-origin requests use the HTTP-only cookie set by the server.
+        // External API clients continue using the X-API-Key header.
         function apiUrl(path) {
             return '/v1' + path;
         }
@@ -1314,7 +1305,7 @@
             selectedFiles.forEach(f => formData.append('files', f));
 
             try {
-                const resp = await fetch(apiUrl('/upload/batch'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: formData });
+                const resp = await fetch(apiUrl('/upload/batch'), { method: 'POST', body: formData });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
                     throw new Error(errData.detail || errData.error || `HTTP ${resp.status}`);
@@ -1337,7 +1328,7 @@
                 return;
             }
             try {
-                const resp = await fetch(apiUrl(`/results/${taskId}`), { headers: apiHeaders() });
+                const resp = await fetch(apiUrl(`/results/${taskId}`));
                 if (resp.status === 404 && retries < 120) {
                     // Results not ready yet — poll again after delay
                     await new Promise(r => setTimeout(r, 500));
@@ -1584,7 +1575,7 @@
             formData.append('file', selectedVideo);
 
             try {
-                const resp = await fetch(apiUrl('/upload/video'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: formData });
+                const resp = await fetch(apiUrl('/upload/video'), { method: 'POST', body: formData });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
                     throw new Error(errData.error || errData.detail || `HTTP ${resp.status}`);
@@ -1775,7 +1766,7 @@
                 const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
                 const fd = new FormData();
                 fd.append('file', blob, 'frame.jpg');
-                const resp = await fetch(apiUrl('/detect/frame'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: fd });
+                const resp = await fetch(apiUrl('/detect/frame'), { method: 'POST', body: fd });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 lastFrameTime = Date.now();

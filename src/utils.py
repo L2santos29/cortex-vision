@@ -18,7 +18,74 @@ HUE_RANGE = 120
 FALLBACK_FPS = 30
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+# Magic byte signatures for supported image formats
+_IMAGE_MAGIC_BYTES: dict[bytes, str] = {
+    b"\xff\xd8\xff": "JPEG",
+    b"\x89PNG\r\n\x1a\n": "PNG",
+    b"BM": "BMP",
+}
+_IMAGE_MAGIC_MIN_LEN = 12
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def validate_image_content(contents: bytes) -> None:
+    """Validate that bytes contain a known image format via magic bytes.
+
+    Checks the first bytes of the uploaded content against known image
+    signatures (JPEG, PNG, BMP). WebP requires a deeper RIFF+WEBP check.
+    Raises HTTPException (400) if the content does not match a known format.
+    """
+    if len(contents) < _IMAGE_MAGIC_MIN_LEN:
+        raise HTTPException(
+            status_code=400,
+            detail="File too small to be a valid image",
+        )
+
+    # Check known magic byte signatures
+    for magic, fmt in _IMAGE_MAGIC_BYTES.items():
+        if contents[: len(magic)] == magic:
+            return
+
+    # WebP: RIFF + 4 bytes (size) + WEBP
+    if contents[:4] == b"RIFF" and contents[8:12] == b"WEBP":
+        return
+
+    raise HTTPException(
+        status_code=400,
+        detail="Uploaded content does not match a supported image format"
+        " (JPEG, PNG, WebP, BMP)",
+    )
+
+
+def validate_video_content(contents: bytes) -> None:
+    """Validate that bytes contain a known video format via magic bytes.
+
+    Checks the file header against common container signatures.
+    Raises HTTPException (400) if the content does not match a known format.
+    """
+    if len(contents) < 16:
+        raise HTTPException(
+            status_code=400,
+            detail="File too small to be a valid video",
+        )
+
+    # MP4/MOV: ftyp box at offset 4
+    if contents[4:8] == b"ftyp":
+        return
+
+    # AVI: RIFF + 4 bytes + AVI
+    if contents[:4] == b"RIFF" and contents[8:12] == b"AVI ":
+        return
+
+    # MKV/WebM: EBML header
+    if contents[:4] == b"\x1a\x45\xdf\xa3":
+        return
+
+    raise HTTPException(
+        status_code=400,
+        detail="Uploaded content does not match a supported video format"
+        " (MP4, AVI, MOV, MKV, WebM)",
+    )
 
 
 def validate_image(filename: str, size: int) -> None:

@@ -9,14 +9,13 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import cv2
 import numpy as np
 from fastapi import BackgroundTasks, FastAPI, File, UploadFile, Depends, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
-from fastapi.staticfiles import StaticFiles
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 from pydantic_settings import BaseSettings
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -28,7 +27,6 @@ from .services import DetectionService, sanitize_filename
 from .utils import (
     ALLOWED_VIDEO_EXTENSIONS,
     MAX_VIDEO_SIZE,
-    process_video_frames,
 )
 
 # ---------------------------------------------------------------------------
@@ -98,11 +96,23 @@ app.add_middleware(
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
-    """Dependency that validates API key for non-public endpoints."""
-    if api_key is None or api_key != settings.api_key:
-        raise HTTPException(status_code=401, detail="Invalid or missing API key")
-    return api_key
+async def verify_api_key(
+    api_key: str = Security(api_key_header),
+    request: Request = None,
+) -> str:
+    """Dependency that validates API key for non-public endpoints.
+
+    Checks the ``X-API-Key`` header first, then falls back to the ``api_key``
+    HTTP-only cookie (set by the index page for the web UI).
+    """
+    if api_key == settings.api_key:
+        return api_key
+    # Fallback: check the HTTP-only cookie (set by the web UI)
+    if request is not None:
+        cookie_key = request.cookies.get("api_key")
+        if cookie_key == settings.api_key:
+            return cookie_key
+    raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 # ---- Middleware: Security Headers (SEC-06) ----
@@ -194,7 +204,7 @@ app.add_middleware(MetricsMiddleware)
 
 
 @app.get("/metrics")
-async def metrics():
+async def metrics(api_key: str = Depends(verify_api_key)):
     """Prometheus-compatible metrics endpoint."""
     lines = [
         "# HELP cortex_vision_request_count Total request count by route",
@@ -246,18 +256,27 @@ if static_dir.exists():
 # ---------------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
-async def index() -> str:
-    """Serve the web UI (public, no auth required)."""
+async def index() -> Response:
+    """Serve the web UI (public, no auth required).
+
+    Sets an HTTP-only cookie with the API key so the frontend can
+    authenticate without exposing the key to client-side JavaScript.
+    """
     index_path = static_dir / "index.html"
     if index_path.exists():
         html = index_path.read_text()
-        # Inject API key config for the frontend (same-origin, dev convenience)
-        config_script = (
-            '<script>window.CORTEX_CONFIG = {"apiKey": "' + settings.api_key + '"};</script>'
+        response = HTMLResponse(content=html)
+        response.set_cookie(
+            key="api_key",
+            value=settings.api_key,
+            httponly=True,
+            samesite="lax",
+            max_age=86400,  # 24 hours
         )
-        html = html.replace("</head>", config_script + "</head>")
-        return html
-    return "<h1>Cortex-Vision API</h1><p>Static UI not found. Use /docs for API.</p>"
+        return response
+    return HTMLResponse(
+        content="<h1>Cortex-Vision API</h1><p>Static UI not found. Use /docs for API.</p>"
+    )
 
 
 @app.get("/health")
@@ -277,7 +296,7 @@ async def upload_image(
 ) -> JSONResponse:
     """Upload a single image and get detection results."""
     contents = await file.read()
-    service.validate_image(file.filename or "unknown", len(contents))
+    service.validate_image(file.filename or "unknown", len(contents), contents)
 
     image_path = service.get_upload_path(file.filename or "unknown")
 
@@ -309,7 +328,7 @@ async def upload_batch(
 
     for file in files:
         contents = await file.read()
-        service.validate_image(file.filename or "unknown", len(contents))
+        service.validate_image(file.filename or "unknown", len(contents), contents)
 
         image_path = service.get_batch_upload_path(task_id, file.filename or "unknown")
 
@@ -352,48 +371,34 @@ async def upload_video(
             status_code=400,
         )
 
-    video_id = uuid.uuid4().hex
-    video_path = service.upload_dir / f"{video_id}_{safe_name}"
     contents = await file.read()
 
     if len(contents) > MAX_VIDEO_SIZE:
         return JSONResponse({"error": "Video too large (>500MB)"}, status_code=400)
 
+    # Validate video content via magic bytes
     try:
-        video_path.write_bytes(contents)
-    except OSError as exc:
-        logger.error("Failed to write video %s: %s", video_path, exc)
-        return JSONResponse({"error": "Failed to save uploaded video"}, status_code=500)
+        from .utils import validate_video_content
+        validate_video_content(contents)
+    except HTTPException:
+        raise
+
+    video_id = uuid.uuid4().hex
 
     try:
-        frames_data = process_video_frames(str(video_path), detector, fps_sample=1)
-        duration = frames_data[-1]["timestamp"] if frames_data else 0
-
+        result = await service.process_video(contents, file.filename or "unknown", video_id)
         logger.info(
             "Processed video %s (%d frames)",
             file.filename,
-            len(frames_data),
+            result["total_frames_processed"],
         )
-        return JSONResponse(
-            {
-                "filename": file.filename,
-                "video_id": video_id,
-                "duration_seconds": duration,
-                "total_frames_processed": len(frames_data),
-                "total_objects": sum(f["object_count"] for f in frames_data),
-                "frames": frames_data,
-            },
-            status_code=201,
-        )
+        return JSONResponse(result, status_code=201)
     except (ValueError, RuntimeError, OSError) as exc:
-        logger.error("Video processing failed for %s: %s", video_path, exc)
+        logger.error("Video processing failed for %s: %s", file.filename, exc)
         return JSONResponse({"error": "Video processing failed"}, status_code=500)
     except Exception as exc:
-        logger.error("Unexpected error processing video %s: %s", video_path, exc)
+        logger.error("Unexpected error processing video %s: %s", file.filename, exc)
         return JSONResponse({"error": "Video processing failed"}, status_code=500)
-    finally:
-        if video_path.exists():
-            video_path.unlink()
 
 
 @app.post("/v1/detect/frame")

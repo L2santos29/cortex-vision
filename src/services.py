@@ -18,7 +18,10 @@ import numpy as np
 from .utils import (
     ALLOWED_VIDEO_EXTENSIONS,
     MAX_VIDEO_SIZE,
+    process_video_frames,
     validate_image,
+    validate_image_content,
+    validate_video_content,
 )
 
 if TYPE_CHECKING:
@@ -204,9 +207,11 @@ class DetectionService:
 
     # ---- Validation ----
 
-    def validate_image(self, filename: str, size: int) -> None:
-        """Validate image extension and size (raises HTTPException on failure)."""
+    def validate_image(self, filename: str, size: int, contents: bytes | None = None) -> None:
+        """Validate image extension, size, and content (raises HTTPException on failure)."""
         validate_image(filename, size)
+        if contents is not None:
+            validate_image_content(contents)
 
     def validate_video_format(self, filename: str) -> bool:
         """Check if the video format is supported."""
@@ -252,6 +257,48 @@ class DetectionService:
             asyncio.to_thread(self.pipeline.process, file_paths),
             timeout=300.0,
         )
+
+    # ---- Video processing ----
+
+    async def process_video(
+        self, contents: bytes, filename: str, video_id: str
+    ) -> dict:
+        """Save a video, run per-frame detection, and return annotated results.
+
+        The temporary video file is cleaned up after processing. All detection
+        runs on the YOLO engine via the shared detector instance.
+
+        Returns:
+            A dict with keys: filename, video_id, duration_seconds,
+            total_frames_processed, total_objects, frames.
+        """
+        safe_name = sanitize_filename(filename)
+        video_path = self.upload_dir / f"{video_id}_{safe_name}"
+
+        # Save to disk
+        try:
+            video_path.write_bytes(contents)
+        except OSError as exc:
+            logger.error("Failed to write video %s: %s", video_path, exc)
+            raise
+
+        try:
+            frames_data = await asyncio.to_thread(
+                process_video_frames, str(video_path), self.detector, 1
+            )
+            duration = frames_data[-1]["timestamp"] if frames_data else 0
+
+            return {
+                "filename": filename,
+                "video_id": video_id,
+                "duration_seconds": duration,
+                "total_frames_processed": len(frames_data),
+                "total_objects": sum(f["object_count"] for f in frames_data),
+                "frames": frames_data,
+            }
+        finally:
+            if video_path.exists():
+                video_path.unlink()
 
     # ---- Batch processing ----
 
