@@ -17,6 +17,17 @@
             --red: #f85149;
             --sidebar-w: 220px;
         }
+        :root.light {
+            --bg: #ffffff;
+            --card: #f6f8fa;
+            --border: #d0d7de;
+            --text: #1f2328;
+            --text-muted: #656d76;
+            --accent: #0969da;
+            --green: #1a7f37;
+            --orange: #9a6700;
+            --red: #cf222e;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -311,6 +322,65 @@
         .stats-bar .stat { display: flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; }
         .stats-bar .stat .num { font-weight: 700; color: var(--accent); }
 
+        /* Class chart */
+        .chart-toggle {
+            font-size: 0.82rem;
+            color: var(--accent);
+            cursor: pointer;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.3rem 0.8rem;
+            margin-bottom: 0.5rem;
+            transition: border-color 0.2s;
+        }
+        .chart-toggle:hover { border-color: var(--accent); }
+        .chart-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.75rem;
+            display: none;
+        }
+        .chart-box.visible { display: block; }
+        .chart-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0;
+            font-size: 0.82rem;
+        }
+        .chart-label {
+            width: 80px;
+            flex-shrink: 0;
+            color: var(--text);
+            text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .chart-bar-bg {
+            flex: 1;
+            height: 14px;
+            background: var(--border);
+            border-radius: 7px;
+            overflow: hidden;
+        }
+        .chart-bar {
+            height: 100%;
+            border-radius: 7px;
+            background: linear-gradient(90deg, var(--red), var(--orange), var(--green));
+            transition: width 0.4s ease-out;
+        }
+        .chart-value {
+            width: 28px;
+            flex-shrink: 0;
+            text-align: right;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
         /* Video frame */
         .frame-card {
             background: var(--bg);
@@ -521,7 +591,12 @@
                     📊 History
                 </button>
             </nav>
-            <div class="sidebar-footer">v0.1.0 · YOLOv8 · FastAPI</div>
+            <div class="sidebar-footer">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+                    <span style="font-size:0.7rem;color:var(--text-muted);">v0.1.0 · YOLOv8 · FastAPI</span>
+                    <button id="themeToggle" style="background:none;border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.5rem;cursor:pointer;font-size:0.8rem;color:var(--text-muted);transition:border-color 0.2s;" title="Toggle theme">🌙</button>
+                </div>
+            </div>
         </aside>
 
         <!-- Content -->
@@ -560,6 +635,8 @@
                         <input type="range" id="confSlider" min="0" max="100" value="0">
                         <span class="filter-value" id="confValue">0%</span>
                     </div>
+                    <button class="chart-toggle" id="chartToggle" style="display:none;">📊 Class Distribution</button>
+                    <div class="chart-box" id="chartBox"></div>
                     <div class="stats-bar" id="statsBar" style="display: none;"></div>
                     <div class="results-grid" id="resultsGrid"></div>
                 </div>
@@ -594,6 +671,8 @@
                         <span id="videoSummary" style="font-size: 0.88rem; color: var(--text-muted);"></span>
                     </div>
                     <div class="video-timeline" id="videoTimeline" style="display: none;"></div>
+                    <button class="chart-toggle" id="videoChartToggle" style="display:none;">📊 Class Distribution</button>
+                    <div class="chart-box" id="videoChartBox"></div>
                     <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
                     <div class="results-grid" id="videoResultsGrid"></div>
                 </div>
@@ -687,6 +766,11 @@
         const confValue = document.getElementById('confValue');
         const filterBar = document.getElementById('filterBar');
         const imgCount = document.getElementById('imgCount');
+        const chartToggle = document.getElementById('chartToggle');
+        const chartBox = document.getElementById('chartBox');
+        const videoChartToggle = document.getElementById('videoChartToggle');
+        const videoChartBox = document.getElementById('videoChartBox');
+        const themeToggle = document.getElementById('themeToggle');
 
         let selectedFiles = [];
         let currentTaskId = null;
@@ -1019,6 +1103,83 @@
             });
         }
 
+        // ---- Class chart ----
+        function renderClassChart(containerId, detections) {
+            const counts = {};
+            for (const d of detections) {
+                counts[d.class] = (counts[d.class] || 0) + 1;
+            }
+            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            const maxVal = Math.max(...entries.map(e => e[1]), 1);
+            let html = '';
+            entries.forEach(([cls, count]) => {
+                const pct = (count / maxVal) * 100;
+                html += `<div class="chart-row"><span class="chart-label">${cls}</span><div class="chart-bar-bg"><div class="chart-bar" style="width:${pct}%"></div></div><span class="chart-value">${count}</span></div>`;
+            });
+            document.getElementById(containerId).innerHTML = html;
+        }
+
+        // ---- Theme toggle ----
+        function toggleTheme() {
+            document.documentElement.classList.toggle('light');
+            const isLight = document.documentElement.classList.contains('light');
+            themeToggle.textContent = isLight ? '☀️' : '🌙';
+            localStorage.setItem('cv_theme', isLight ? 'light' : 'dark');
+        }
+
+        // Restore saved theme
+        if (localStorage.getItem('cv_theme') === 'light') {
+            document.documentElement.classList.add('light');
+            themeToggle.textContent = '☀️';
+        }
+        themeToggle.addEventListener('click', toggleTheme);
+
+        // ---- Chart toggle ----
+        chartToggle.addEventListener('click', () => {
+            chartBox.classList.toggle('visible');
+            if (chartBox.classList.contains('visible') && currentRawDetections) {
+                renderClassChart('chartBox', currentRawDetections);
+            }
+        });
+        videoChartToggle.addEventListener('click', () => {
+            videoChartBox.classList.toggle('visible');
+            if (videoChartBox.classList.contains('visible')) {
+                // Get all detections from displayed frames
+                const allDets = [];
+                document.querySelectorAll('#videoResultsGrid .frame-card').forEach(card => {
+                    const items = card.querySelectorAll('.detection-item');
+                    items.forEach(item => {
+                        const cls = item.querySelector('.detection-class')?.textContent;
+                        if (cls) allDets.push({class: cls});
+                    });
+                });
+                if (allDets.length > 0) renderClassChart('videoChartBox', allDets);
+            }
+        });
+
+        // ---- Keyboard shortcuts ----
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            switch (e.key) {
+                case ' ':
+                    e.preventDefault();
+                    if (startWebcamBtn.disabled) stopWebcam(); else startWebcam();
+                    break;
+                case 'e':
+                case 'E':
+                    if (currentTaskId) window.open(`/export/${currentTaskId}`, '_blank');
+                    break;
+                case 'r':
+                case 'R':
+                    clearBtn.click();
+                    break;
+                case '1': switchTab('images'); break;
+                case '2': switchTab('video'); break;
+                case '3': switchTab('webcam'); break;
+                case '4': switchTab('history'); break;
+            }
+        });
+
         // ══════════════════════════════════════════════
         //  PROCESS IMAGES
         // ══════════════════════════════════════════════
@@ -1059,6 +1220,10 @@
                 renderResults(data);
                 exportBtn.style.display = 'inline-block';
                 filterBar.style.display = 'flex';
+                chartToggle.style.display = 'inline-block';
+                if (chartBox.classList.contains('visible')) {
+                    renderClassChart('chartBox', currentRawDetections);
+                }
 
                 // Update sidebar count
                 imgCount.textContent = data.total_objects || data.detections?.length || 0;
@@ -1212,6 +1377,8 @@
             statsBar.style.display = 'none';
             filterBar.style.display = 'none';
             exportBtn.style.display = 'none';
+            chartToggle.style.display = 'none';
+            chartBox.classList.remove('visible');
             imgStatus.className = 'status-msg';
             imgStatus.style.display = 'none';
             imgCount.textContent = '';
@@ -1313,6 +1480,8 @@
         function renderVideoResults(data) {
             const frames = data.frames || [];
             videoResultsCard.style.display = 'block';
+            videoChartToggle.style.display = 'inline-block';
+            videoChartBox.classList.remove('visible');
 
             const totalFrames = frames.length;
             const allClasses = [...new Set(frames.flatMap(f => f.detections.map(d => d.class)))];
