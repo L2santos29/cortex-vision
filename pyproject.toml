@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cortex-vision"
+version = "0.1.0"
+description = "Object recognition platform powered by YOLOv8 — images, video, and webcam detection"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "L2santos29", email = "l2santos29@users.noreply.github.com"},
+]
+keywords = ["yolo", "object-detection", "computer-vision", "fastapi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.31.0",
+    "ultralytics>=8.3.0",
+    "pillow>=10.0.0",
+    "opencv-python>=4.10.0",
+    "numpy>=1.26.0",
+    "python-multipart>=0.0.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/L2santos29/cortex-vision"
+Repository = "https://github.com/L2santos29/cortex-vision.git"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
