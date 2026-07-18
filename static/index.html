@@ -10,9 +10,11 @@
             --card: #161b22;
             --border: #30363d;
             --text: #c9d1d9;
+            --text-muted: #8b949e;
             --accent: #58a6ff;
             --green: #3fb950;
             --orange: #d2991d;
+            --red: #f85149;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -28,45 +30,9 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-wrap: wrap;
         }
         header h1 { font-size: 1.5rem; color: var(--accent); }
-        main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-        }
-        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
-        .upload-area {
-            border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 3rem 2rem;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s;
-        }
-        .upload-area:hover { border-color: var(--accent); }
-        .upload-area.dragover { border-color: var(--green); background: rgba(63,185,80,0.05); }
-        input[type="file"] { display: none; }
-        #results { margin-top: 1rem; }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-        .result-item:last-child { border-bottom: none; }
-        .tag {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            background: rgba(88,166,255,0.15);
-            color: var(--accent);
-        }
         .badge {
             display: inline-block;
             background: var(--green);
@@ -75,17 +41,189 @@
             border-radius: 10px;
             font-size: 0.75rem;
         }
-        button {
-            background: var(--accent);
-            color: #fff;
-            border: none;
+        main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+
+        /* Upload area */
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .upload-area:hover { border-color: var(--accent); }
+        .upload-area.dragover {
+            border-color: var(--green);
+            background: rgba(63,185,80,0.05);
+        }
+        .upload-area .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .upload-area .sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+        .upload-methods {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            border: 1px solid var(--border);
             border-radius: 6px;
             padding: 0.5rem 1.2rem;
             cursor: pointer;
             font-size: 0.9rem;
+            background: var(--card);
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+        .btn:hover { border-color: var(--accent); }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        input[type="file"] { display: none; }
+
+        /* Status bar */
+        #status {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            display: none;
+        }
+        #status.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
+        #status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
+        #status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+
+        /* Results grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
             margin-top: 1rem;
         }
-        button:hover { opacity: 0.9; }
+        .result-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+        .result-card:hover { border-color: var(--accent); }
+        .result-card .preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+            background: #000;
+            border-bottom: 1px solid var(--border);
+        }
+        .result-card .preview.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .result-card .body {
+            padding: 0.75rem 1rem;
+        }
+        .result-card .filename {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        .result-card .detection-list {
+            list-style: none;
+        }
+        .result-card .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid rgba(48,54,61,0.5);
+            font-size: 0.85rem;
+        }
+        .result-card .detection-item:last-child { border-bottom: none; }
+        .detection-class {
+            color: var(--accent);
+        }
+        .detection-conf {
+            background: rgba(88,166,255,0.15);
+            color: var(--accent);
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .result-card .count-badge {
+            display: inline-block;
+            background: var(--orange);
+            color: #fff;
+            padding: 0.1rem 0.4rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+        }
+        .result-card .empty {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-style: italic;
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+        .result-card .loading {
+            text-align: center;
+            padding: 1rem 0;
+            color: var(--text-muted);
+        }
+        .result-card .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            padding: 0.75rem 0;
+        }
+        .stats-bar .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .stats-bar .stat .num {
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            header { flex-direction: column; align-items: flex-start; }
+            .upload-methods { flex-direction: column; align-items: center; }
+        }
     </style>
 </head>
 <body>
@@ -94,34 +232,70 @@
         <span class="badge">Pre-Alpha</span>
     </header>
     <main>
+        <!-- Upload card -->
         <div class="card">
-            <h2>📤 Upload Images</h2>
+            <h2</h1>>📤 Upload Images</h2>
             <div class="upload-area" id="dropZone">
-                <p>Drop images here or click to upload</p>
-                <p style="color:#8b949e;font-size:0.85rem;margin-top:0.5rem;">
-                    .jpg .jpeg .png .webp (up to 10MB each)
-                </p>
+                <div class="icon">📁</div>
+                <p>Drop images here</p>
+                <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
+                <div class="upload-methods">
+                    <button class="btn" id="selectFilesBtn">📎 Select Files</button>
+                    <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
+                </div>
             </div>
             <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp">
-            <button id="uploadBtn">Process Images</button>
+            <input type="file" id="folderInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp" webkitdirectory>
+            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="uploadBtn" disabled>🚀 Process Images</button>
+                <button class="btn" id="clearBtn">🗑️ Clear</button>
+                <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem;"></span>
+            </div>
             <div id="status"></div>
         </div>
-        <div class="card" id="resultsCard" style="display:none;">
-            <h2>📊 Results</h2>
-            <div id="results"></div>
+
+        <!-- Results card -->
+        <div class="card" id="resultsCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <h2>📊 Results</h2>
+                <button class="btn" id="exportBtn" style="display: none;">📥 Export CSV</button>
+            </div>
+            <div class="stats-bar" id="statsBar" style="display: none;"></div>
+            <div class="results-grid" id="resultsGrid"></div>
         </div>
     </main>
+
     <script>
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
+        const folderInput = document.getElementById('folderInput');
+        const selectFilesBtn = document.getElementById('selectFilesBtn');
+        const selectFolderBtn = document.getElementById('selectFolderBtn');
         const uploadBtn = document.getElementById('uploadBtn');
+        const clearBtn = document.getElementById('clearBtn');
         const statusEl = document.getElementById('status');
+        const fileCount = document.getElementById('fileCount');
         const resultsCard = document.getElementById('resultsCard');
-        const resultsEl = document.getElementById('results');
+        const resultsGrid = document.getElementById('resultsGrid');
+        const statsBar = document.getElementById('statsBar');
+        const exportBtn = document.getElementById('exportBtn');
 
         let selectedFiles = [];
+        let currentTaskId = null;
+        let currentResults = null;
 
-        dropZone.addEventListener('click', () => fileInput.click());
+        // ---- File selection ----
+        selectFilesBtn.addEventListener('click', () => fileInput.click());
+        selectFolderBtn.addEventListener('click', () => folderInput.click());
+
+        fileInput.addEventListener('change', () => handleSelectedFiles(fileInput.files));
+        folderInput.addEventListener('change', () => handleSelectedFiles(folderInput.files));
+
+        // Drag & drop
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            fileInput.click();
+        });
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
             dropZone.classList.add('dragover');
@@ -132,48 +306,243 @@
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
+            handleSelectedFiles(e.dataTransfer.files);
         });
 
-        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+        function handleSelectedFiles(files) {
+            if (!files || files.length === 0) return;
 
-        function handleFiles(files) {
-            selectedFiles = Array.from(files);
-            dropZone.innerHTML = `<p>${selectedFiles.length} file(s) selected</p>`;
-            fileInput.files = files;
+            // Filter images
+            const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+            selectedFiles = Array.from(files).filter(f => {
+                const ext = '.' + f.name.split('.').pop().toLowerCase();
+                return validExts.includes(ext);
+            });
+
+            if (selectedFiles.length === 0) {
+                showStatus('No valid image files found. Accepted: JPG, PNG, WebP, BMP', 'error');
+                return;
+            }
+
+            fileCount.textContent = `${selectedFiles.length} image(s) selected`;
+            uploadBtn.disabled = false;
+            showPreviews(selectedFiles);
         }
 
+        // ---- Previews ----
+        function showPreviews(files) {
+            resultsCard.style.display = 'block';
+            statsBar.style.display = 'none';
+            exportBtn.style.display = 'none';
+
+            const fragment = document.createDocumentFragment();
+            files.forEach((file, idx) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.id = `card-${idx}`;
+
+                const img = document.createElement('img');
+                img.className = 'preview';
+                img.src = URL.createObjectURL(file);
+                img.alt = file.name;
+
+                const body = document.createElement('div');
+                body.className = 'body';
+
+                const fname = document.createElement('div');
+                fname.className = 'filename';
+                fname.textContent = `📄 ${file.name}`;
+
+                const loading = document.createElement('div');
+                loading.className = 'loading';
+                loading.textContent = '⏳ Waiting to process';
+
+                body.appendChild(fname);
+                body.appendChild(loading);
+                card.appendChild(img);
+                card.appendChild(body);
+                fragment.appendChild(card);
+            });
+
+            resultsGrid.innerHTML = '';
+            resultsGrid.appendChild(fragment);
+        }
+
+        // ---- Process ----
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return;
 
-            statusEl.innerHTML = '<p style="color:var(--accent)">Processing...</p>';
+            // Reset cards to loading state
+            document.querySelectorAll('.result-card .loading').forEach(el => {
+                el.textContent = '⏳ Processing';
+            });
+
+            uploadBtn.disabled = true;
+            showStatus(`Processing ${selectedFiles.length} image(s)...`, 'info');
+
             const formData = new FormData();
             selectedFiles.forEach(f => formData.append('files', f));
 
             try {
                 const resp = await fetch('/upload/batch', { method: 'POST', body: formData });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.detail || `HTTP ${resp.status}`);
+                }
                 const data = await resp.json();
-                statusEl.innerHTML = `<p style="color:var(--green)">✅ ${data.files_processed} images processed — ${data.total_objects} objects detected</p>`;
-                loadResults(data.task_id);
+                currentTaskId = data.task_id;
+                showStatus(`✅ ${data.files_processed} images processed — ${data.total_objects} objects detected`, 'success');
+                await loadResults(currentTaskId);
             } catch (err) {
-                statusEl.innerHTML = `<p style="color:#f85149">❌ Error: ${err.message}</p>`;
+                showStatus(`❌ Error: ${err.message}`, 'error');
+                document.querySelectorAll('.result-card .loading').forEach(el => {
+                    el.textContent = '❌ Failed';
+                });
+                uploadBtn.disabled = false;
             }
         });
 
         async function loadResults(taskId) {
             try {
                 const resp = await fetch(`/results/${taskId}`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
-                resultsCard.style.display = 'block';
-                resultsEl.innerHTML = data.detections.slice(0, 20).map(d =>
-                    `<div class="result-item">
-                        <span>${d.class}</span>
-                        <span class="tag">${d.confidence}</span>
-                    </div>`
-                ).join('');
+                currentResults = data;
+
+                renderResults(data);
+                exportBtn.style.display = 'inline-block';
+                uploadBtn.disabled = false;
             } catch (err) {
-                resultsEl.innerHTML = `<p style="color:#f85149">Failed to load results</p>`;
+                showStatus(`❌ Failed to load results: ${err.message}`, 'error');
+                uploadBtn.disabled = false;
             }
+        }
+
+        function renderResults(data) {
+            const detections = data.detections || [];
+            const perFile = data.per_file || [];
+
+            // Group detections by image path
+            const byImage = {};
+            for (const d of detections) {
+                const imgPath = d.image;
+                if (!byImage[imgPath]) byImage[imgPath] = [];
+                byImage[imgPath].push(d);
+            }
+
+            // Stats
+            const totalImages = perFile.length || Object.keys(byImage).length;
+            const totalObjects = detections.length;
+            const classes = [...new Set(detections.map(d => d.class))];
+            statsBar.style.display = 'flex';
+            statsBar.innerHTML = `
+                <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
+                <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
+                <span class="stat">📊 Unique: <span class="num">${data.unique_classes || classes.length}</span></span>
+            `;
+
+            // Update each card with its detections
+            selectedFiles.forEach((file, idx) => {
+                const card = document.getElementById(`card-${idx}`);
+                if (!card) return;
+
+                const body = card.querySelector('.body');
+                const loading = body.querySelector('.loading');
+                if (loading) loading.remove();
+
+                // Remove old detection list if any
+                const oldList = body.querySelector('.detection-list');
+                if (oldList) oldList.remove();
+                const oldEmpty = body.querySelector('.empty');
+                if (oldEmpty) oldEmpty.remove();
+
+                // Find detections for this file
+                const imgPath = `uploads/${currentTaskId}_${file.name}`;
+                const fileDets = byImage[imgPath] || [];
+
+                if (fileDets.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.textContent = '🔍 No objects detected';
+                    body.appendChild(empty);
+                } else {
+                    const list = document.createElement('ul');
+                    list.className = 'detection-list';
+                    fileDets.forEach(d => {
+                        const item = document.createElement('li');
+                        item.className = 'detection-item';
+                        const label = document.createElement('span');
+                        label.className = 'detection-class';
+                        label.textContent = d.class;
+                        const conf = document.createElement('span');
+                        conf.className = 'detection-conf';
+                        conf.textContent = `${(d.confidence * 100).toFixed(1)}%`;
+                        item.appendChild(label);
+                        item.appendChild(conf);
+                        list.appendChild(item);
+                    });
+                    body.appendChild(list);
+
+                    // Add count badge to filename
+                    const fname = body.querySelector('.filename');
+                    if (fname) {
+                        const existing = fname.querySelector('.count-badge');
+                        if (existing) existing.remove();
+                        const badge = document.createElement('span');
+                        badge.className = 'count-badge';
+                        badge.textContent = `${fileDets.length}`;
+                        fname.appendChild(badge);
+                    }
+                }
+            });
+        }
+
+        // ---- Export ----
+        exportBtn.addEventListener('click', () => {
+            if (currentTaskId) {
+                window.open(`/export/${currentTaskId}`, '_blank');
+            }
+        });
+
+        // ---- Clear ----
+        clearBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            currentTaskId = null;
+            currentResults = null;
+            fileInput.value = '';
+            folderInput.value = '';
+            fileCount.textContent = '';
+            uploadBtn.disabled = true;
+            resultsGrid.innerHTML = '';
+            resultsCard.style.display = 'none';
+            statsBar.style.display = 'none';
+            exportBtn.style.display = 'none';
+            statusEl.className = '';
+            statusEl.style.display = 'none';
+            dropZone.innerHTML = `
+                <div class="icon">📁</div>
+                <p>Drop images here</p>
+                <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
+                <div class="upload-methods">
+                    <button class="btn" id="selectFilesBtn">📎 Select Files</button>
+                    <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
+                </div>
+            `;
+            // Re-bind buttons since we replaced innerHTML
+            document.getElementById('selectFilesBtn').addEventListener('click', () => fileInput.click());
+            document.getElementById('selectFolderBtn').addEventListener('click', () => folderInput.click());
+            document.getElementById('dropZone').addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+                fileInput.click();
+            });
+        });
+
+        // ---- Helpers ----
+        function showStatus(msg, type) {
+            statusEl.textContent = msg;
+            statusEl.className = type;
+            statusEl.style.display = 'block';
         }
     </script>
 </body>
