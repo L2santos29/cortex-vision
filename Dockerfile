@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Build dependencies in a virtual environment
 # =============================================================================
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir torch torchvision --index-url https://download.py
 # =============================================================================
 # Stage 2: Minimal runtime image
 # =============================================================================
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
