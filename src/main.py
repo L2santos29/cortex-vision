@@ -9,6 +9,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import cv2
 import numpy as np
 from fastapi import BackgroundTasks, FastAPI, File, UploadFile, Depends, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
