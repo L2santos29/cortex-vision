@@ -1,5 +1,6 @@
 """Cortex-Vision main entry point — FastAPI application."""
 
+import asyncio
 import logging
 import statistics
 import time
@@ -249,7 +250,13 @@ async def index() -> str:
     """Serve the web UI (public, no auth required)."""
     index_path = static_dir / "index.html"
     if index_path.exists():
-        return index_path.read_text()
+        html = index_path.read_text()
+        # Inject API key config for the frontend (same-origin, dev convenience)
+        config_script = (
+            '<script>window.CORTEX_CONFIG = {"apiKey": "' + settings.api_key + '"};</script>'
+        )
+        html = html.replace("</head>", config_script + "</head>")
+        return html
     return "<h1>Cortex-Vision API</h1><p>Static UI not found. Use /docs for API.</p>"
 
 
@@ -392,23 +399,45 @@ async def upload_video(
 @app.post("/v1/detect/frame")
 async def detect_frame(
     file: UploadFile = File(...),
+    api_key: str = Depends(verify_api_key),
 ) -> JSONResponse:
     """Receive a single frame from webcam and run detection.
 
     Lightweight endpoint — no disk I/O, processes entirely in memory.
     Called periodically (~1 FPS) by the live webcam UI.
-    No auth required — only accepts small JPEG blobs, no file storage.
     """
     contents = await file.read()
     if not contents:
         return JSONResponse({"error": "Empty frame"}, status_code=400)
 
-    nparr = np.frombuffer(contents, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    if img is None:
-        return JSONResponse({"error": "Invalid image data"}, status_code=400)
+    # Validate size (SEC-01)
+    MAX_FRAME_SIZE = 5 * 1024 * 1024
+    if len(contents) > MAX_FRAME_SIZE:
+        return JSONResponse({"error": "Frame too large (>5MB)"}, status_code=400)
 
-    detections = await service.run_detection_on_array(img)
+    # Validate content type if available
+    if file.content_type and file.content_type not in ("image/jpeg", "image/png", "image/webp"):
+        return JSONResponse({"error": "Unsupported content type"}, status_code=400)
+
+    # Decode frame with error handling (ERR-01)
+    try:
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return JSONResponse({"error": "Invalid image data"}, status_code=400)
+    except Exception as exc:
+        logger.error("Frame decode failed: %s", exc)
+        return JSONResponse({"error": "Failed to decode frame"}, status_code=400)
+
+    # Run detection with error handling (ERR-01)
+    try:
+        detections = await service.run_detection_on_array(img)
+    except asyncio.TimeoutError:
+        logger.error("Frame detection timed out")
+        return JSONResponse({"error": "Detection timed out"}, status_code=504)
+    except Exception as exc:
+        logger.error("Frame detection failed: %s", exc)
+        return JSONResponse({"error": "Detection failed"}, status_code=500)
 
     return JSONResponse({
         "detections": detections,

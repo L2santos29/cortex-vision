@@ -811,6 +811,21 @@
             return div.innerHTML;
         }
 
+        // API helper — reads config injected by the server
+        function apiKey() {
+            return (window.CORTEX_CONFIG && window.CORTEX_CONFIG.apiKey) || '';
+        }
+
+        function apiHeaders() {
+            const h = {'Content-Type': 'application/json'};
+            if (apiKey()) h['X-API-Key'] = apiKey();
+            return h;
+        }
+
+        function apiUrl(path) {
+            return '/v1' + path;
+        }
+
         function switchTab(tabId) {
             tabBtns.forEach(b => {
                 b.classList.toggle('active', b.dataset.tab === tabId);
@@ -1298,10 +1313,10 @@
             selectedFiles.forEach(f => formData.append('files', f));
 
             try {
-                const resp = await fetch('/upload/batch', { method: 'POST', body: formData });
+                const resp = await fetch(apiUrl('/upload/batch'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: formData });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.detail || `HTTP ${resp.status}`);
+                    throw new Error(errData.detail || errData.error || `HTTP ${resp.status}`);
                 }
                 const data = await resp.json();
                 currentTaskId = data.task_id;
@@ -1316,7 +1331,7 @@
 
         async function loadResults(taskId) {
             try {
-                const resp = await fetch(`/results/${taskId}`);
+                const resp = await fetch(apiUrl(`/results/${taskId}`), { headers: apiHeaders() });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 currentResults = data;
@@ -1457,7 +1472,7 @@
         //  EXPORT CSV
         // ══════════════════════════════════════════════
         exportBtn.addEventListener('click', () => {
-            if (currentTaskId) window.open(`/export/${currentTaskId}`, '_blank');
+            if (currentTaskId) window.open(apiUrl(`/export/${currentTaskId}`), '_blank');
         });
 
         // ══════════════════════════════════════════════
@@ -1555,10 +1570,10 @@
             formData.append('file', selectedVideo);
 
             try {
-                const resp = await fetch('/upload/video', { method: 'POST', body: formData });
+                const resp = await fetch(apiUrl('/upload/video'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: formData });
                 if (!resp.ok) {
                     const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.error || `HTTP ${resp.status}`);
+                    throw new Error(errData.error || errData.detail || `HTTP ${resp.status}`);
                 }
                 const data = await resp.json();
                 showVideoStatus(
@@ -1746,7 +1761,7 @@
                 const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
                 const fd = new FormData();
                 fd.append('file', blob, 'frame.jpg');
-                const resp = await fetch('/detect/frame', { method: 'POST', body: fd });
+                const resp = await fetch(apiUrl('/detect/frame'), { method: 'POST', headers: {'X-API-Key': apiKey()}, body: fd });
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 lastFrameTime = Date.now();
