@@ -13,6 +13,10 @@ from .detector import Detector
 from .pipeline import BatchPipeline
 from .utils import ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE, process_video_frames
 
+import time
+import numpy as np
+import cv2
+
 app = FastAPI(title="Cortex-Vision", version="0.1.0")
 
 # Configuration
@@ -127,6 +131,31 @@ async def upload_video(file: UploadFile = File(...)):
         # Clean up video file after processing
         if video_path.exists():
             video_path.unlink()
+
+
+@app.post("/detect/frame")
+async def detect_frame(file: UploadFile = File(...)):
+    """Receive a single frame from webcam and run detection.
+
+    Lightweight endpoint — no disk I/O, processes entirely in memory.
+    Called periodically (~1 FPS) by the live webcam UI.
+    """
+    contents = await file.read()
+    if not contents:
+        return JSONResponse({"error": "Empty frame"}, status_code=400)
+
+    nparr = np.frombuffer(contents, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        return JSONResponse({"error": "Invalid image data"}, status_code=400)
+
+    detections = detector.detect_array(img)
+
+    return JSONResponse({
+        "detections": detections,
+        "object_count": len(detections),
+        "timestamp": time.time(),
+    })
 
 
 @app.get("/results/{task_id}")

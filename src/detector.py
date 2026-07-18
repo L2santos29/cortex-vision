@@ -1,5 +1,6 @@
 """YOLOv8 object detection engine."""
 
+import numpy as np
 from ultralytics import YOLO
 
 
@@ -46,6 +47,35 @@ class Detector:
                     class_name = result.names[cls_id]
                     confidence = float(box.conf.item())
                     bbox = box.xyxy[0].tolist()  # [x1, y1, x2, y2]
+
+                    detections.append({
+                        "class": class_name,
+                        "confidence": round(confidence, 3),
+                        "bbox": [round(x, 1) for x in bbox],
+                    })
+
+        return detections
+
+    def detect_array(self, img: np.ndarray) -> list[dict]:
+        """Run object detection on a numpy image array (no disk I/O).
+
+        Args:
+            img: Image as numpy array (BGR format from OpenCV).
+
+        Returns:
+            List of detection dicts with keys: class, confidence, bbox.
+        """
+        results = self.model(img, verbose=False)
+
+        detections = []
+        for result in results:
+            boxes = result.boxes
+            if boxes is not None:
+                for box in boxes:
+                    cls_id = int(box.cls.item())
+                    class_name = result.names[cls_id]
+                    confidence = float(box.conf.item())
+                    bbox = box.xyxy[0].tolist()
 
                     detections.append({
                         "class": class_name,

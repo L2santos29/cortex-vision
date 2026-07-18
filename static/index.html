@@ -255,6 +255,33 @@
         }
         .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
 
+        /* Webcam section */
+        .webcam-detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(48,54,61,0.3);
+            font-size: 0.9rem;
+        }
+        .webcam-detection-item:last-child { border-bottom: none; }
+        .webcam-class { color: var(--accent); font-weight: 500; }
+        .webcam-conf {
+            background: rgba(88,166,255,0.15);
+            color: var(--accent);
+            padding: 0.15rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .webcam-timer {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+        #webcamStatus.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+        #webcamStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+        #webcamStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+
         /* Responsive */
         @media (max-width: 700px) {
             .results-grid {
@@ -313,6 +340,30 @@
                 <p id="videoInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;"></p>
             </div>
             <div id="videoStatus"></div>
+        </div>
+
+        <!-- Live Webcam card -->
+        <div class="card">
+            <h2>📹 Live Webcam</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Real-time detection at ~1 FPS. Frames are sent to the server and processed in memory.</p>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 280px;">
+                    <div style="background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;" id="webcamPlaceholder">
+                        <p style="color: var(--text-muted);">📷 Camera off</p>
+                    </div>
+                    <video id="webcamVideo" autoplay playsinline style="display: none; width: 100%; border-radius: 8px; background: #000;"></video>
+                </div>
+                <div style="flex: 1; min-width: 220px;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                        <button class="btn btn-primary" id="startWebcamBtn">📷 Start Camera</button>
+                        <button class="btn" id="stopWebcamBtn" disabled>⏹ Stop</button>
+                    </div>
+                    <div id="webcamStatus" style="margin-bottom: 0.5rem;"></div>
+                    <div id="webcamResults" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; min-height: 100px;">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Image Results card -->
@@ -723,6 +774,157 @@
             videoStatus.textContent = msg;
             videoStatus.className = type;
             videoStatus.style.display = 'block';
+        }
+
+        // ---- Webcam ----
+        const startWebcamBtn = document.getElementById('startWebcamBtn');
+        const stopWebcamBtn = document.getElementById('stopWebcamBtn');
+        const webcamVideo = document.getElementById('webcamVideo');
+        const webcamPlaceholder = document.getElementById('webcamPlaceholder');
+        const webcamResults = document.getElementById('webcamResults');
+        const webcamStatus = document.getElementById('webcamStatus');
+
+        let mediaStream = null;
+        let webcamIntervalId = null;
+        let isProcessingFrame = false;
+        let lastFrameTime = null;
+
+        startWebcamBtn.addEventListener('click', startWebcam);
+        stopWebcamBtn.addEventListener('click', stopWebcam);
+
+        async function startWebcam() {
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showWebcamStatus('Camera access not supported in this browser. Try Chrome or Firefox.', 'error');
+                    return;
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user',
+                    },
+                    audio: false,
+                });
+
+                mediaStream = stream;
+                webcamVideo.srcObject = stream;
+                webcamVideo.style.display = 'block';
+                webcamPlaceholder.style.display = 'none';
+
+                startWebcamBtn.disabled = true;
+                stopWebcamBtn.disabled = false;
+
+                showWebcamStatus('📷 Camera active — detecting at ~1 FPS', 'success');
+
+                // Start periodic frame capture
+                webcamIntervalId = setInterval(captureAndDetect, 1000);
+            } catch (err) {
+                const msg = err.name === 'NotAllowedError'
+                    ? 'Camera permission denied. Please allow camera access and try again.'
+                    : err.name === 'NotFoundError'
+                        ? 'No camera found on this device.'
+                        : `Camera error: ${err.message}`;
+                showWebcamStatus(msg, 'error');
+            }
+        }
+
+        function stopWebcam() {
+            // Clear interval
+            if (webcamIntervalId) {
+                clearInterval(webcamIntervalId);
+                webcamIntervalId = null;
+            }
+
+            // Stop all camera tracks
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+
+            webcamVideo.srcObject = null;
+            webcamVideo.style.display = 'none';
+            webcamPlaceholder.style.display = 'flex';
+
+            startWebcamBtn.disabled = false;
+            stopWebcamBtn.disabled = true;
+            isProcessingFrame = false;
+            lastFrameTime = null;
+
+            showWebcamStatus('⏹ Camera stopped', 'info');
+            webcamResults.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>';
+        }
+
+        async function captureAndDetect() {
+            // Skip if previous frame is still processing
+            if (isProcessingFrame || !mediaStream) return;
+
+            const video = webcamVideo;
+            if (!video.videoWidth || !video.videoHeight) return;
+
+            isProcessingFrame = true;
+
+            try {
+                // Capture frame to canvas
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+
+                // Convert to blob and send
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+
+                const formData = new FormData();
+                formData.append('file', blob, 'frame.jpg');
+
+                const resp = await fetch('/detect/frame', { method: 'POST', body: formData });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+                const data = await resp.json();
+                lastFrameTime = Date.now();
+
+                renderWebcamResults(data);
+            } catch (err) {
+                webcamResults.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">❌ Detection error: ${err.message}</p>`;
+            } finally {
+                isProcessingFrame = false;
+            }
+        }
+
+        function renderWebcamResults(data) {
+            const detections = data.detections || [];
+            const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
+
+            let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-weight: 600; font-size: 0.9rem;">🎯 ${data.object_count} objects</span>
+                <span class="webcam-timer">⏱️ ${elapsed}s ago</span>
+            </div>`;
+
+            if (detections.length === 0) {
+                html += '<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">🔍 No objects detected in this frame</p>';
+            } else {
+                html += '<div>';
+                detections.slice(0, 10).forEach(d => {
+                    html += `<div class="webcam-detection-item">
+                        <span class="webcam-class">${d.class}</span>
+                        <span class="webcam-conf">${(d.confidence * 100).toFixed(1)}%</span>
+                    </div>`;
+                });
+                if (detections.length > 10) {
+                    html += `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 0.25rem;">+ ${detections.length - 10} more</p>`;
+                }
+                html += '</div>';
+            }
+
+            webcamResults.innerHTML = html;
+        }
+
+        function showWebcamStatus(msg, type) {
+            webcamStatus.textContent = msg;
+            webcamStatus.className = type;
+            webcamStatus.style.display = 'block';
         }
 
         // ---- Export ----
