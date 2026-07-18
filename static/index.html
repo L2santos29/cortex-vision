@@ -711,7 +711,7 @@
                             </div>
                             <div class="webcam-container" id="webcamContainer" style="display:none;">
                                 <video id="webcamVideo" autoplay playsinline></video>
-                                <canvas id="webcamOverlay"></canvas>
+                                <canvas id="webcamOverlay" role="img" aria-label="Live webcam detection overlay"></canvas>
                             </div>
                         </div>
                         <div style="flex: 1; min-width: 220px;">
@@ -1130,6 +1130,8 @@
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'preview-canvas';
+                canvas.setAttribute('role', 'img');
+                canvas.setAttribute('aria-label', `Preview of ${file.name}`);
                 const body = document.createElement('div');
                 body.className = 'body';
 

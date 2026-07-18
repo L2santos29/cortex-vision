@@ -5,6 +5,7 @@ result aggregation, and optional LLM-powered scene descriptions.
 """
 
 from .detector import Detector
+from .profiling import timed
 
 
 class BatchPipeline:
@@ -23,30 +24,43 @@ class BatchPipeline:
         """
         self.detector = detector
 
+    @timed(warn_threshold=30.0)
     def process(self, image_paths: list[str]) -> list[dict]:
         """Run detection on every image path and collect per-file results.
 
         This method iterates sequentially and can be safely offloaded to a
         thread pool via asyncio.to_thread() since it performs no async I/O.
+        If an individual image fails, it is skipped with an error marker so
+        remaining images are still processed (graceful degradation).
         """
         results = []
         for path in image_paths:
-            detections = self.detector.detect(path)
-            results.append({
-                "image": path,
-                "detections": detections,
-                "object_count": len(detections),
-            })
+            try:
+                detections = self.detector.detect(path)
+                results.append({
+                    "image": path,
+                    "detections": detections,
+                    "object_count": len(detections),
+                })
+            except Exception as exc:
+                results.append({
+                    "image": path,
+                    "detections": [],
+                    "object_count": 0,
+                    "error": str(exc),
+                })
         return results
 
     def aggregate(self, per_file_results: list[dict]) -> list[dict]:
         """Flatten per-file results into a single detection list sorted by confidence.
 
         Each detection dict is enriched with the source image path so consumers
-        can trace results back to origin files.
+        can trace results back to origin files. Entries with errors are skipped.
         """
         aggregated = []
         for file_result in per_file_results:
+            if "error" in file_result:
+                continue
             for det in file_result["detections"]:
                 aggregated.append({
                     "image": file_result["image"],
@@ -62,7 +76,7 @@ class BatchPipeline:
         """Compute per-class counts and summary statistics.
 
         Returns total detections, unique class count, a per-class histogram,
-        and the top-5 most frequent classes — useful for the batch results
+        and the top-5 most frequent classes - useful for the batch results
         dashboard and CSV export.
         """
         class_counts = {}

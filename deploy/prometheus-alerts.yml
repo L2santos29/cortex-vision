@@ -1,0 +1,60 @@
+# Prometheus alerting rules for Cortex-Vision
+#
+# Usage: reference this file in your prometheus.yml:
+#   rule_files:
+#     - /path/to/prometheus-alerts.yml
+#
+groups:
+  - name: cortex-vision
+    interval: 30s
+    rules:
+      - alert: CortexVisionDown
+        expr: up{job="cortex-vision"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cortex-Vision instance is down"
+          description: "Cortex-Vision has been unreachable for over 1 minute."
+
+      - alert: CortexVisionHighErrorRate
+        expr: rate(cortex_vision_request_count{route=~"/v1/.*"}[5m]) > 0
+          and
+          rate(cortex_vision_request_count{route=~"/v1/.*"}[5m])
+          -
+          rate(cortex_vision_request_count{route=~"/v1/.*"}[5m])
+          offset 5m
+          > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on API endpoints"
+          description: "Error rate on v1 endpoints has increased significantly."
+
+      - alert: CortexVisionHighLatency
+        expr: cortex_vision_request_latency_seconds{quantile="p99"} > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P99 latency on {{ $labels.route }}"
+          description: "P99 latency for {{ $labels.route }} is {{ $value }}s (threshold: 10s)."
+
+      - alert: CortexVisionSlowDetection
+        expr: cortex_vision_request_latency_seconds{quantile="avg"} > 5
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Average detection latency above 5s"
+          description: "Average latency is {{ $value }}s — detection pipeline may be degrading."
+
+      - alert: CortexVisionNoTraffic
+        expr: rate(cortex_vision_request_count[10m]) == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No traffic in last 10 minutes"
+          description: "Cortex-Vision received zero requests in the last 10 minutes."

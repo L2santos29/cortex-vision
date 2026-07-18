@@ -50,7 +50,7 @@ def test_validate_image_too_large():
 
 def test_sanitize_filename_removes_path():
     """Path components are stripped, leaving only the filename."""
-    from src.main import sanitize_filename
+    from src.services import sanitize_filename
 
     assert sanitize_filename("/etc/passwd") == "passwd"
     assert sanitize_filename("../../etc/passwd") == "passwd"
@@ -58,7 +58,7 @@ def test_sanitize_filename_removes_path():
 
 def test_sanitize_filename_removes_special_chars():
     """Special characters are replaced with underscores."""
-    from src.main import sanitize_filename
+    from src.services import sanitize_filename
 
     result = sanitize_filename("hello$%^world.txt")
     assert "$" not in result
@@ -70,7 +70,7 @@ def test_sanitize_filename_removes_special_chars():
 
 def test_sanitize_filename_limits_length():
     """Filename is truncated to 128 characters."""
-    from src.main import sanitize_filename
+    from src.services import sanitize_filename
 
     long_name = "a" * 200 + ".txt"
     result = sanitize_filename(long_name)

@@ -10,8 +10,9 @@ import re
 import time
 import uuid
 from collections import OrderedDict
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -33,6 +34,7 @@ logger = logging.getLogger(__name__)
 # ---- Constants ----
 MAX_FILENAME_LENGTH = 128
 MAX_BATCH_RESULTS = 1000
+CACHE_HASH_SAMPLE_BYTES = 4096  # First 4 KiB of array content for cache key
 
 
 def sanitize_filename(filename: str) -> str:
@@ -43,12 +45,13 @@ def sanitize_filename(filename: str) -> str:
 
 
 async def retry_with_backoff(
-    func, *args,
+    func: Callable[..., Awaitable[Any]],
+    *args: Any,
     max_retries: int = 3,
     base_delay: float = 0.5,
     max_delay: float = 10.0,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     """Retry an async function with exponential backoff and jitter.
 
     Args:
@@ -90,7 +93,7 @@ class CircuitBreaker:
         self.state = self.CLOSED
         self.last_failure_time = 0.0
 
-    def call(self, func, *args, **kwargs):
+    def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         """Execute func if circuit is closed, raise CircuitBreakerError if open."""
         if self.state == self.OPEN:
             if time.time() - self.last_failure_time >= self.recovery_timeout:
@@ -111,7 +114,7 @@ class CircuitBreaker:
                 self.state = self.OPEN
             raise exc
 
-    async def async_call(self, func, *args, **kwargs):
+    async def async_call(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
         """Async version of call()."""
         if self.state == self.OPEN:
             if time.time() - self.last_failure_time >= self.recovery_timeout:
@@ -144,8 +147,8 @@ class DetectionCache:
         return f"path:{image_path}"
 
     def _make_array_key(self, img: np.ndarray) -> str:
-        # Use first 32 bytes of content as key (fast, not full hash)
-        return f"arr:{hashlib.md5(img.tobytes()[:4096]).hexdigest()}"
+        # Sample first 4 KiB of content — avoids hashing the entire array
+        return f"arr:{hashlib.md5(img.tobytes()[:CACHE_HASH_SAMPLE_BYTES]).hexdigest()}"
 
     def get(self, key: str) -> list | None:
         """Get cached result and mark as recently used."""
@@ -184,6 +187,7 @@ class DetectionService:
         self.output_dir.mkdir(exist_ok=True)
         self.cache = DetectionCache()
         self.batch_results: dict[str, dict] = {}
+        self.detection_circuit = CircuitBreaker(failure_threshold=5, recovery_timeout=30.0)
 
     # ---- File helpers ----
 
@@ -201,9 +205,15 @@ class DetectionService:
         safe_name = sanitize_filename(filename)
         return self.upload_dir / f"{prefix}_{safe_name}"
 
-    def save_upload(self, contents: bytes, path: Path) -> None:
-        """Save uploaded file contents to disk."""
-        path.write_bytes(contents)
+    async def save_upload(self, contents: bytes, path: Path) -> None:
+        """Save uploaded file contents to disk with retry on transient I/O errors."""
+        async def _write(p: Path, c: bytes) -> None:
+            p.write_bytes(c)
+        await retry_with_backoff(
+            _write, path, contents,
+            max_retries=2,
+            base_delay=0.2,
+        )
 
     # ---- Validation ----
 
@@ -226,37 +236,47 @@ class DetectionService:
     # ---- Detection ----
 
     async def run_detection(self, image_path: str) -> list[dict]:
-        """Run detection on a single image (thread-pooled with cache)."""
+        """Run detection on a single image (thread-pooled with cache and circuit breaker)."""
         import asyncio
 
         cache_key = self.cache._make_key(image_path)
         cached = self.cache.get(cache_key)
         if cached is not None:
             return cached
-        result = await asyncio.wait_for(
-            asyncio.to_thread(self.detector.detect, image_path),
-            timeout=30.0,
-        )
+
+        async def _detect():
+            return await asyncio.wait_for(
+                asyncio.to_thread(self.detector.detect, image_path),
+                timeout=30.0,
+            )
+
+        result = await self.detection_circuit.async_call(_detect)
         self.cache.put(cache_key, result)
         return result
 
     async def run_detection_on_array(self, img: np.ndarray) -> list[dict]:
-        """Run detection on a numpy array (thread-pooled)."""
+        """Run detection on a numpy array (thread-pooled, circuit-protected)."""
         import asyncio
 
-        return await asyncio.wait_for(
-            asyncio.to_thread(self.detector.detect_array, img),
-            timeout=30.0,
-        )
+        async def _detect():
+            return await asyncio.wait_for(
+                asyncio.to_thread(self.detector.detect_array, img),
+                timeout=30.0,
+            )
+
+        return await self.detection_circuit.async_call(_detect)
 
     async def run_detection_on_paths(self, file_paths: list[str]) -> list[dict]:
-        """Run detection on multiple image paths (thread-pooled)."""
+        """Run detection on multiple image paths (thread-pooled, circuit-protected)."""
         import asyncio
 
-        return await asyncio.wait_for(
-            asyncio.to_thread(self.pipeline.process, file_paths),
-            timeout=300.0,
-        )
+        async def _detect():
+            return await asyncio.wait_for(
+                asyncio.to_thread(self.pipeline.process, file_paths),
+                timeout=300.0,
+            )
+
+        return await self.detection_circuit.async_call(_detect)
 
     # ---- Video processing ----
 
@@ -275,12 +295,12 @@ class DetectionService:
         safe_name = sanitize_filename(filename)
         video_path = self.upload_dir / f"{video_id}_{safe_name}"
 
-        # Save to disk
-        try:
-            video_path.write_bytes(contents)
-        except OSError as exc:
-            logger.error("Failed to write video %s: %s", video_path, exc)
-            raise
+        # Save to disk with retry on transient I/O errors
+        async def _write_video(p: Path, c: bytes) -> None:
+            p.write_bytes(c)
+        await retry_with_backoff(
+            _write_video, video_path, contents,
+        )
 
         try:
             frames_data = await asyncio.to_thread(
@@ -303,25 +323,49 @@ class DetectionService:
     # ---- Batch processing ----
 
     async def process_batch(self, task_id: str, file_paths: list[str]) -> None:
-        """Background task: run detection and store results."""
+        """Background task: run detection and store results (graceful degradation).
+
+        If some images fail detection, the batch still stores partial results
+        with error markers instead of failing entirely.
+        """
         logger.info("Batch %s: processing %d files", task_id, len(file_paths))
         try:
             results = await self.run_detection_on_paths(file_paths)
-            aggregated = self.pipeline.aggregate(results)
-            computed_stats = self.pipeline.stats(aggregated)
-
+        except Exception as exc:
+            logger.error("Batch %s completely failed: %s", task_id, exc)
             self._evict_oldest_batch()
-
             self.batch_results[task_id] = {
                 "files_processed": len(file_paths),
-                "detections": aggregated,
-                "per_file": results,
-                "stats": computed_stats,
+                "detections": [],
+                "per_file": [],
+                "stats": {"total_detections": 0, "unique_classes": 0, "per_class": {}, "top_classes": []},
+                "errors": [str(exc)],
                 "_ts": time.time(),
             }
+            return
+
+        failed = sum(1 for r in results if "error" in r)
+        aggregated = self.pipeline.aggregate(results)
+        computed_stats = self.pipeline.stats(aggregated)
+
+        self._evict_oldest_batch()
+
+        self.batch_results[task_id] = {
+            "files_processed": len(file_paths),
+            "files_failed": failed,
+            "detections": aggregated,
+            "per_file": results,
+            "stats": computed_stats,
+            "_ts": time.time(),
+        }
+
+        if failed:
+            logger.warning(
+                "Batch %s: completed with %d/%d files failed (%d objects)",
+                task_id, failed, len(file_paths), len(aggregated),
+            )
+        else:
             logger.info("Batch %s: completed (%d objects)", task_id, len(aggregated))
-        except (ValueError, RuntimeError, OSError) as exc:
-            logger.error("Batch %s failed: %s", task_id, exc)
 
     def _evict_oldest_batch(self) -> None:
         """Remove oldest entry when batch_results exceeds the limit."""

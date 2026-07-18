@@ -24,7 +24,7 @@ jobs:
         continue-on-error: true
       - name: Run tests
         run: |
-          python -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=50
+          python -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-fail-under=80
       - name: Lint with ruff
         run: |
           pip install ruff

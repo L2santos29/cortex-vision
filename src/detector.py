@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 from ultralytics import YOLO
 
+from .profiling import timed
+
 
 class Detector:
     """Object detector using YOLOv8.
@@ -52,6 +54,7 @@ class Detector:
                     })
         return detections
 
+    @timed(warn_threshold=5.0)
     def detect(self, image_path: str) -> list[dict]:
         """Run object detection on a single image file.
 
@@ -64,14 +67,21 @@ class Detector:
         """
         if not Path(image_path).exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
-        results = self.model(image_path, verbose=False)
+        try:
+            results = self.model(image_path, verbose=False)
+        except Exception as exc:
+            raise RuntimeError(f"YOLO inference failed on {image_path}") from exc
         return self._parse_results(results)
 
+    @timed(warn_threshold=5.0)
     def detect_array(self, img: np.ndarray) -> list[dict]:
         """Run object detection on a numpy image array (no disk I/O).
 
         Useful for webcam frames or in-memory images where writing to disk
         would add latency. Expects BGR format from OpenCV.
         """
-        results = self.model(img, verbose=False)
+        try:
+            results = self.model(img, verbose=False)
+        except Exception as exc:
+            raise RuntimeError("YOLO inference failed on array input") from exc
         return self._parse_results(results)

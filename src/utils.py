@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 from fastapi import HTTPException
 
+from .profiling import timed
+
 if TYPE_CHECKING:
     from .detector import Detector
 
@@ -201,6 +203,7 @@ def frame_to_base64(frame: np.ndarray, max_size: int = THUMBNAIL_MAX_SIZE) -> st
     return "data:image/jpeg;base64," + base64.b64encode(buf).decode("utf-8")
 
 
+@timed(warn_threshold=60.0)
 def process_video_frames(video_path: str, detector: "Detector", fps_sample: int = 1) -> list[dict]:
     """Extract video frames, run detection on each, and produce annotated thumbnails.
 
