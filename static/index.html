@@ -15,6 +15,7 @@
             --green: #3fb950;
             --orange: #d2991d;
             --red: #f85149;
+            --sidebar-w: 220px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -23,37 +24,104 @@
             color: var(--text);
             min-height: 100vh;
         }
-        header {
+
+        /* ---- Layout ---- */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ---- Sidebar ---- */
+        .sidebar {
+            width: var(--sidebar-w);
             background: var(--card);
+            border-right: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-brand {
+            padding: 1.25rem 1.25rem 1rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--accent);
             border-bottom: 1px solid var(--border);
-            padding: 1rem 2rem;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
+            gap: 0.5rem;
         }
-        header h1 { font-size: 1.5rem; color: var(--accent); }
-        .badge {
-            display: inline-block;
+        .sidebar-brand .badge {
+            font-size: 0.6rem;
             background: var(--green);
             color: #fff;
-            padding: 0.15rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.75rem;
-        }
-        main { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
+            padding: 0.1rem 0.4rem;
             border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            font-weight: 600;
         }
-        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+        .sidebar-nav {
+            padding: 0.5rem 0;
+            flex: 1;
+        }
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            background: none;
+            border: none;
+            border-right: 2px solid transparent;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            text-align: left;
+        }
+        .tab-btn:hover {
+            background: rgba(88,166,255,0.05);
+            color: var(--text);
+        }
+        .tab-btn.active {
+            background: rgba(88,166,255,0.1);
+            color: var(--accent);
+            border-right-color: var(--accent);
+        }
+        .tab-btn .count {
+            margin-left: auto;
+            font-size: 0.7rem;
+            background: var(--border);
+            padding: 0.1rem 0.5rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+        }
+        .sidebar-footer {
+            padding: 0.75rem 1.25rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
 
-        /* Animations */
+        /* ---- Content ---- */
+        .content {
+            flex: 1;
+            padding: 1.5rem 2rem;
+            max-width: 1200px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        /* ---- Animations ---- */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
         @keyframes fadeInUp {
@@ -64,34 +132,35 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        .animate-in {
-            animation: fadeIn 0.35s ease-out forwards;
-        }
-        .animate-up {
-            animation: fadeInUp 0.25s ease-out forwards;
-        }
+        .animate-in { animation: fadeIn 0.35s ease-out forwards; }
+        .animate-up { animation: fadeInUp 0.25s ease-out forwards; }
 
-        /* Upload area */
+        /* ---- Shared components ---- */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
         .upload-area {
             border: 2px dashed var(--border);
             border-radius: 8px;
-            padding: 3rem 2rem;
+            padding: 2.5rem 2rem;
             text-align: center;
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
         }
         .upload-area:hover { border-color: var(--accent); }
-        .upload-area.dragover {
-            border-color: var(--green);
-            background: rgba(63,185,80,0.05);
-        }
-        .upload-area .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
-        .upload-area .sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
+        .upload-area.dragover { border-color: var(--green); background: rgba(63,185,80,0.05); }
+        .upload-area .icon { font-size: 2.2rem; margin-bottom: 0.4rem; }
+        .upload-area .sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.4rem; }
         .upload-methods {
             display: flex;
             gap: 0.75rem;
             justify-content: center;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
             flex-wrap: wrap;
         }
         .btn {
@@ -105,25 +174,22 @@
             transition: border-color 0.2s;
         }
         .btn:hover { border-color: var(--accent); }
-        .btn-primary {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-        }
+        .btn-primary { background: var(--accent); color: #fff; border: none; }
         .btn-primary:hover { opacity: 0.9; }
         .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
         input[type="file"] { display: none; }
 
-        /* Status bar */
-        #status, #videoStatus {
+        /* Status */
+        .status-msg {
             margin-top: 1rem;
             padding: 0.75rem 1rem;
             border-radius: 6px;
             display: none;
         }
-        #status.info, #videoStatus.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
-        #status.success, #videoStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
-        #status.error, #videoStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+        .status-msg.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
+        .status-msg.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
+        .status-msg.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
 
         /* Confidence filter */
         .filter-bar {
@@ -133,11 +199,7 @@
             margin-bottom: 0.75rem;
             flex-wrap: wrap;
         }
-        .filter-bar label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
+        .filter-bar label { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
         .filter-bar input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -150,33 +212,25 @@
         .filter-bar input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
             border: 2px solid var(--card);
         }
         .filter-bar input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
             border: 2px solid var(--card);
         }
-        .filter-value {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--accent);
-            min-width: 2.5rem;
-            text-align: right;
-        }
+        .filter-value { font-size: 0.85rem; font-weight: 600; color: var(--accent); min-width: 2.5rem; text-align: right; }
 
         /* Results grid */
         .results-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
@@ -187,62 +241,55 @@
             overflow: hidden;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .result-card:hover { border-color: var(--accent); box-shadow: 0 0 15px rgba(88,166,255,0.08); }
+        .result-card:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(88,166,255,0.06); }
         .result-card .preview-canvas {
             width: 100%;
-            height: 200px;
+            height: 180px;
             display: block;
             background: #000;
             border-bottom: 1px solid var(--border);
-            object-fit: cover;
         }
-        .result-card .body {
-            padding: 0.75rem 1rem;
-        }
+        .result-card .body { padding: 0.65rem 0.85rem; }
         .result-card .filename {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             word-break: break-all;
-        }
-        .result-card .detection-list {
-            list-style: none;
-        }
-        .result-card .detection-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 0.3rem 0;
-            border-bottom: 1px solid rgba(48,54,61,0.5);
-            font-size: 0.85rem;
+            gap: 0.4rem;
         }
-        .result-card .detection-item:last-child { border-bottom: none; }
-        .detection-class {
-            color: var(--accent);
-        }
-        .detection-class .highlight {
-            color: var(--green);
-        }
-        .detection-conf {
-            background: rgba(88,166,255,0.15);
-            color: var(--accent);
-            padding: 0.1rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .detection-conf.high { background: rgba(63,185,80,0.2); color: var(--green); }
-        .detection-conf.medium { background: rgba(210,153,29,0.2); color: var(--orange); }
-        .detection-conf.low { background: rgba(248,81,73,0.15); color: var(--red); }
-        .result-card .count-badge {
+        .result-card .filename .count-badge {
             display: inline-block;
             background: var(--orange);
             color: #fff;
             padding: 0.1rem 0.4rem;
             border-radius: 8px;
-            font-size: 0.7rem;
-            margin-left: 0.5rem;
+            font-size: 0.65rem;
+            margin-left: auto;
         }
+        .result-card .detection-list { list-style: none; }
+        .result-card .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(48,54,61,0.4);
+            font-size: 0.82rem;
+        }
+        .result-card .detection-item:last-child { border-bottom: none; }
+        .detection-class { color: var(--accent); }
+        .detection-conf {
+            background: rgba(88,166,255,0.15);
+            color: var(--accent);
+            padding: 0.1rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+        .detection-conf.high { background: rgba(63,185,80,0.2); color: var(--green); }
+        .detection-conf.medium { background: rgba(210,153,29,0.2); color: var(--orange); }
+        .detection-conf.low { background: rgba(248,81,73,0.15); color: var(--red); }
         .result-card .empty {
             color: var(--text-muted);
             font-size: 0.8rem;
@@ -250,40 +297,21 @@
             text-align: center;
             padding: 0.5rem 0;
         }
-        .result-card .loading {
-            text-align: center;
-            padding: 1rem 0;
-            color: var(--text-muted);
-        }
-        .result-card .loading::after {
-            content: '...';
-            animation: dots 1.5s steps(4, end) infinite;
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
-        }
+        .result-card .loading { text-align: center; padding: 1rem 0; color: var(--text-muted); }
+        .result-card .loading::after { content: '...'; animation: dots 1.5s steps(4, end) infinite; }
+        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
 
         /* Stats bar */
         .stats-bar {
             display: flex;
             gap: 1.5rem;
             flex-wrap: wrap;
-            padding: 0.75rem 0;
+            padding: 0.6rem 0;
         }
-        .stats-bar .stat {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.9rem;
-        }
-        .stats-bar .stat .num {
-            font-weight: 700;
-            color: var(--accent);
-        }
+        .stats-bar .stat { display: flex; align-items: center; gap: 0.4rem; font-size: 0.88rem; }
+        .stats-bar .stat .num { font-weight: 700; color: var(--accent); }
 
-        /* Video frame styles */
+        /* Video frame */
         .frame-card {
             background: var(--bg);
             border: 1px solid var(--border);
@@ -293,32 +321,27 @@
         .frame-card .frame-header {
             display: flex;
             justify-content: space-between;
-            padding: 0.5rem 0.75rem;
+            padding: 0.45rem 0.7rem;
             background: rgba(48,54,61,0.3);
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
             border-bottom: 1px solid var(--border);
         }
-        .frame-card .frame-body {
-            padding: 0.5rem 0.75rem;
-        }
+        .frame-card .frame-body { padding: 0.45rem 0.7rem; }
         .frame-card .frame-body .empty {
             color: var(--text-muted);
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-style: italic;
             text-align: center;
-            padding: 0.5rem 0;
+            padding: 0.4rem 0;
         }
-        .frame-card .frame-body .detection-list {
-            list-style: none;
-        }
+        .frame-card .frame-body .detection-list { list-style: none; }
         .frame-card .frame-body .detection-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 0.25rem 0;
-            border-bottom: 1px solid rgba(48,54,61,0.3);
-            font-size: 0.8rem;
+            padding: 0.2rem 0;
+            border-bottom: 1px solid rgba(48,54,61,0.25);
+            font-size: 0.78rem;
         }
         .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
 
@@ -327,7 +350,7 @@
             display: flex;
             gap: 4px;
             align-items: center;
-            padding: 0.75rem 0.5rem;
+            padding: 0.65rem 0.5rem;
             overflow-x: auto;
             margin-bottom: 0.75rem;
             background: var(--bg);
@@ -335,182 +358,282 @@
             border-radius: 8px;
         }
         .video-timeline .tl-dot {
-            width: 14px;
-            height: 14px;
+            width: 13px; height: 13px;
             border-radius: 50%;
             cursor: pointer;
             transition: transform 0.15s, box-shadow 0.15s;
             flex-shrink: 0;
             border: 2px solid transparent;
         }
-        .video-timeline .tl-dot:hover {
-            transform: scale(1.4);
-            box-shadow: 0 0 8px rgba(88,166,255,0.4);
-            border-color: var(--accent);
-        }
-        .video-timeline .tl-dot.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 8px rgba(88,166,255,0.3);
-        }
-        .video-timeline .tl-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-right: 0.5rem;
-            flex-shrink: 0;
-        }
+        .video-timeline .tl-dot:hover { transform: scale(1.4); box-shadow: 0 0 8px rgba(88,166,255,0.4); border-color: var(--accent); }
+        .video-timeline .tl-dot.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(88,166,255,0.3); }
+        .video-timeline .tl-label { font-size: 0.7rem; color: var(--text-muted); margin-right: 0.5rem; flex-shrink: 0; }
 
-        /* Webcam section */
+        /* Webcam */
         .webcam-detection-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.4rem 0;
+            padding: 0.35rem 0;
             border-bottom: 1px solid rgba(48,54,61,0.3);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .webcam-detection-item:last-child { border-bottom: none; }
         .webcam-class { color: var(--accent); font-weight: 500; }
         .webcam-conf {
             background: rgba(88,166,255,0.15);
             color: var(--accent);
-            padding: 0.15rem 0.6rem;
+            padding: 0.12rem 0.5rem;
             border-radius: 10px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
         }
-        .webcam-timer {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
-        #webcamStatus.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
-        #webcamStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
-        #webcamStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
-
+        .webcam-timer { color: var(--text-muted); font-size: 0.75rem; }
+        .webcam-status { padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.82rem; display: none; margin-bottom: 0.5rem; }
+        .webcam-status.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
+        .webcam-status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
+        .webcam-status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
         .webcam-live-badge {
             display: inline-block;
             background: var(--green);
             color: #fff;
-            padding: 0.15rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.7rem;
+            padding: 0.12rem 0.45rem;
+            border-radius: 8px;
+            font-size: 0.65rem;
             animation: pulse 1.5s ease-in-out infinite;
-            margin-left: 0.5rem;
+            margin-left: 0.4rem;
         }
 
+        /* History */
+        .history-list { margin-top: 0.5rem; }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.85rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.65rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .history-item:hover { border-color: var(--accent); background: rgba(88,166,255,0.03); }
+        .history-item .h-icon { font-size: 1.5rem; flex-shrink: 0; }
+        .history-item .h-info { flex: 1; min-width: 0; }
+        .history-item .h-info .h-title { font-size: 0.9rem; font-weight: 500; }
+        .history-item .h-info .h-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
+        .history-item .h-time { font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; }
+        .history-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+        .history-empty .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
         /* Responsive */
-        @media (max-width: 700px) {
-            .results-grid {
-                grid-template-columns: 1fr;
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                bottom: 0;
+                top: auto;
+                height: auto;
+                width: 100%;
+                border-right: none;
+                border-top: 1px solid var(--border);
+                z-index: 100;
+                flex-direction: row;
+                overflow-x: auto;
             }
-            header { flex-direction: column; align-items: flex-start; }
-            .upload-methods { flex-direction: column; align-items: center; }
+            .sidebar-brand, .sidebar-footer { display: none; }
+            .sidebar-nav {
+                display: flex;
+                flex-direction: row;
+                padding: 0;
+                flex: 1;
+            }
+            .tab-btn {
+                flex-direction: column;
+                padding: 0.5rem 0.75rem;
+                border-right: none;
+                border-top: 2px solid transparent;
+                font-size: 0.7rem;
+                gap: 0.2rem;
+                min-width: 70px;
+                justify-content: center;
+                text-align: center;
+            }
+            .tab-btn.active { border-right: none; border-top-color: var(--accent); }
+            .tab-btn .count { margin-left: 0; }
+            .content { padding: 1rem 0.75rem; padding-bottom: 80px; }
+            .results-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>🧠 Cortex-Vision</h1>
-        <span class="badge">Pre-Alpha</span>
-    </header>
-    <main>
-        <!-- Upload Images card -->
-        <div class="card">
-            <h2>📤 Upload Images</h2>
-            <div class="upload-area" id="dropZone">
-                <div class="icon">📁</div>
-                <p>Drop images here</p>
-                <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
-                <div class="upload-methods">
-                    <button class="btn" id="selectFilesBtn">📎 Select Files</button>
-                    <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
-                </div>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                🧠 Cortex-Vision <span class="badge">Pre-Alpha</span>
             </div>
-            <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp">
-            <input type="file" id="folderInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp" webkitdirectory>
-            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-primary" id="uploadBtn" disabled>🚀 Process Images</button>
-                <button class="btn" id="clearBtn">🗑️ Clear</button>
-                <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem;"></span>
-            </div>
-            <div id="status"></div>
-        </div>
+            <nav class="sidebar-nav" id="sidebarNav">
+                <button class="tab-btn active" data-tab="images">
+                    📸 Images <span class="count" id="imgCount"></span>
+                </button>
+                <button class="tab-btn" data-tab="video">
+                    🎬 Video <span class="count" id="vidCount"></span>
+                </button>
+                <button class="tab-btn" data-tab="webcam">
+                    📹 Webcam
+                </button>
+                <button class="tab-btn" data-tab="history">
+                    📊 History
+                </button>
+            </nav>
+            <div class="sidebar-footer">v0.1.0 · YOLOv8 · FastAPI</div>
+        </aside>
 
-        <!-- Upload Video card -->
-        <div class="card">
-            <h2>🎬 Upload Video</h2>
-            <div class="upload-area" id="videoDropZone">
-                <div class="icon">🎥</div>
-                <p>Drop a video here or click to select</p>
-                <p class="sub">MP4, AVI, MOV, MKV, WebM — up to 500MB (sampled at 1 FPS)</p>
-                <div class="upload-methods">
-                    <button class="btn" id="selectVideoBtn">🎬 Select Video</button>
-                </div>
-            </div>
-            <input type="file" id="videoInput" accept=".mp4,.avi,.mov,.mkv,.webm">
-            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-primary" id="processVideoBtn" disabled>🎬 Process Video</button>
-            </div>
-            <div id="videoPreview" style="margin-top: 1rem; display: none;">
-                <video id="videoEl" controls style="max-width: 100%; max-height: 400px; border-radius: 8px; background: #000;"></video>
-                <p id="videoInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;"></p>
-            </div>
-            <div id="videoStatus"></div>
-        </div>
+        <!-- Content -->
+        <main class="content">
 
-        <!-- Live Webcam card -->
-        <div class="card">
-            <h2>📹 Live Webcam</h2>
-            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Real-time detection at ~1 FPS. Frames are sent to the server and processed in memory.</p>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 280px;">
-                    <div style="background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;" id="webcamPlaceholder">
-                        <p style="color: var(--text-muted);">📷 Camera off</p>
+            <!-- ════════ TAB: IMAGES ════════ -->
+            <div class="tab-content active" id="tab-images">
+                <div class="card">
+                    <h2>📤 Upload Images</h2>
+                    <div class="upload-area" id="dropZone">
+                        <div class="icon">📁</div>
+                        <p>Drop images here or click to select</p>
+                        <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
+                        <div class="upload-methods">
+                            <button class="btn" id="selectFilesBtn">📎 Select Files</button>
+                            <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
+                        </div>
                     </div>
-                    <video id="webcamVideo" autoplay playsinline style="display: none; width: 100%; border-radius: 8px; background: #000;"></video>
-                </div>
-                <div style="flex: 1; min-width: 220px;">
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                        <button class="btn btn-primary" id="startWebcamBtn">📷 Start Camera</button>
-                        <button class="btn" id="stopWebcamBtn" disabled>⏹ Stop</button>
+                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp">
+                    <input type="file" id="folderInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp" webkitdirectory>
+                    <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="uploadBtn" disabled>🚀 Process Images</button>
+                        <button class="btn" id="clearBtn">🗑️ Clear</button>
+                        <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem;"></span>
                     </div>
-                    <div id="webcamStatus" style="margin-bottom: 0.5rem;"></div>
-                    <div id="webcamResults" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; min-height: 100px;">
-                        <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>
+                    <div class="status-msg" id="imgStatus"></div>
+                </div>
+
+                <div class="card" id="resultsCard" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <h2>📊 Results</h2>
+                        <button class="btn" id="exportBtn" style="display: none;">📥 Export CSV</button>
+                    </div>
+                    <div class="filter-bar" id="filterBar" style="display: none;">
+                        <label>🎯 Min. confidence</label>
+                        <input type="range" id="confSlider" min="0" max="100" value="0">
+                        <span class="filter-value" id="confValue">0%</span>
+                    </div>
+                    <div class="stats-bar" id="statsBar" style="display: none;"></div>
+                    <div class="results-grid" id="resultsGrid"></div>
+                </div>
+            </div>
+
+            <!-- ════════ TAB: VIDEO ════════ -->
+            <div class="tab-content" id="tab-video">
+                <div class="card">
+                    <h2>🎬 Upload Video</h2>
+                    <div class="upload-area" id="videoDropZone">
+                        <div class="icon">🎥</div>
+                        <p>Drop a video here or click to select</p>
+                        <p class="sub">MP4, AVI, MOV, MKV, WebM — up to 500MB (sampled at 1 FPS)</p>
+                        <div class="upload-methods">
+                            <button class="btn" id="selectVideoBtn">🎬 Select Video</button>
+                        </div>
+                    </div>
+                    <input type="file" id="videoInput" accept=".mp4,.avi,.mov,.mkv,.webm">
+                    <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-primary" id="processVideoBtn" disabled>🎬 Process Video</button>
+                    </div>
+                    <div id="videoPreview" style="margin-top: 1rem; display: none;">
+                        <video id="videoEl" controls style="max-width: 100%; max-height: 400px; border-radius: 8px; background: #000;"></video>
+                        <p id="videoInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;"></p>
+                    </div>
+                    <div class="status-msg" id="videoStatus"></div>
+                </div>
+
+                <div class="card" id="videoResultsCard" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <h2>🎬 Results</h2>
+                        <span id="videoSummary" style="font-size: 0.88rem; color: var(--text-muted);"></span>
+                    </div>
+                    <div class="video-timeline" id="videoTimeline" style="display: none;"></div>
+                    <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
+                    <div class="results-grid" id="videoResultsGrid"></div>
+                </div>
+            </div>
+
+            <!-- ════════ TAB: WEBCAM ════════ -->
+            <div class="tab-content" id="tab-webcam">
+                <div class="card">
+                    <h2>📹 Live Webcam</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Real-time detection at ~1 FPS. Frames are sent to the server and processed in memory.</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 280px;">
+                            <div style="background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;" id="webcamPlaceholder">
+                                <p style="color: var(--text-muted);">📷 Camera off</p>
+                            </div>
+                            <video id="webcamVideo" autoplay playsinline style="display: none; width: 100%; border-radius: 8px; background: #000;"></video>
+                        </div>
+                        <div style="flex: 1; min-width: 220px;">
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                                <button class="btn btn-primary" id="startWebcamBtn">📷 Start Camera</button>
+                                <button class="btn" id="stopWebcamBtn" disabled>⏹ Stop</button>
+                            </div>
+                            <div class="webcam-status" id="webcamStatus"></div>
+                            <div id="webcamResults" style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; min-height: 100px;">
+                                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Image Results card -->
-        <div class="card" id="resultsCard" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                <h2>📊 Results</h2>
-                <button class="btn" id="exportBtn" style="display: none;">📥 Export CSV</button>
+            <!-- ════════ TAB: HISTORY ════════ -->
+            <div class="tab-content" id="tab-history">
+                <div class="card">
+                    <h2>📊 Session History</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                        Your past detection sessions are saved locally in this browser.
+                    </p>
+                    <div id="historyList" class="history-list"></div>
+                </div>
             </div>
-            <!-- Confidence filter -->
-            <div class="filter-bar" id="filterBar" style="display: none;">
-                <label>🎯 Min. confidence</label>
-                <input type="range" id="confSlider" min="0" max="100" value="0">
-                <span class="filter-value" id="confValue">0%</span>
-            </div>
-            <div class="stats-bar" id="statsBar" style="display: none;"></div>
-            <div class="results-grid" id="resultsGrid"></div>
-        </div>
 
-        <!-- Video Results card -->
-        <div class="card" id="videoResultsCard" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                <h2>🎬 Video Results</h2>
-                <span id="videoSummary" style="font-size: 0.9rem; color: var(--text-muted);"></span>
-            </div>
-            <div class="video-timeline" id="videoTimeline" style="display: none;"></div>
-            <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
-            <div class="results-grid" id="videoResultsGrid"></div>
-        </div>
-    </main>
+        </main>
+    </div>
 
     <script>
-        // ---- Image elements ----
+        // ══════════════════════════════════════════════
+        //  TAB NAVIGATION
+        // ══════════════════════════════════════════════
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = {
+            images: document.getElementById('tab-images'),
+            video: document.getElementById('tab-video'),
+            webcam: document.getElementById('tab-webcam'),
+            history: document.getElementById('tab-history'),
+        };
+
+        function switchTab(tabId) {
+            tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+            Object.entries(tabContents).forEach(([id, el]) => {
+                el.classList.toggle('active', id === tabId);
+            });
+        }
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // ══════════════════════════════════════════════
+        //  IMAGE ELEMENTS
+        // ══════════════════════════════════════════════
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const folderInput = document.getElementById('folderInput');
@@ -518,7 +641,7 @@
         const selectFolderBtn = document.getElementById('selectFolderBtn');
         const uploadBtn = document.getElementById('uploadBtn');
         const clearBtn = document.getElementById('clearBtn');
-        const statusEl = document.getElementById('status');
+        const imgStatus = document.getElementById('imgStatus');
         const fileCount = document.getElementById('fileCount');
         const resultsCard = document.getElementById('resultsCard');
         const resultsGrid = document.getElementById('resultsGrid');
@@ -527,16 +650,19 @@
         const confSlider = document.getElementById('confSlider');
         const confValue = document.getElementById('confValue');
         const filterBar = document.getElementById('filterBar');
+        const imgCount = document.getElementById('imgCount');
 
         let selectedFiles = [];
         let currentTaskId = null;
         let currentResults = null;
-        let currentRawDetections = null;    // unfiltered detections
-        let currentPerFile = null;          // unfiltered per_file
+        let currentRawDetections = null;
+        let currentPerFile = null;
         let currentConfThreshold = 0;
-        let imagePreviews = {};             // idx -> {img: Image, canvas: HTMLCanvasElement}
+        let imagePreviews = {};
 
-        // ---- Video elements ----
+        // ══════════════════════════════════════════════
+        //  VIDEO ELEMENTS
+        // ══════════════════════════════════════════════
         const videoDropZone = document.getElementById('videoDropZone');
         const videoInput = document.getElementById('videoInput');
         const selectVideoBtn = document.getElementById('selectVideoBtn');
@@ -550,125 +676,194 @@
         const videoStatsBar = document.getElementById('videoStatsBar');
         const videoSummary = document.getElementById('videoSummary');
         const videoTimeline = document.getElementById('videoTimeline');
+        const vidCount = document.getElementById('vidCount');
 
         let selectedVideo = null;
 
-        // ---- Confidence filter ----
+        // ══════════════════════════════════════════════
+        //  WEBCAM ELEMENTS
+        // ══════════════════════════════════════════════
+        const startWebcamBtn = document.getElementById('startWebcamBtn');
+        const stopWebcamBtn = document.getElementById('stopWebcamBtn');
+        const webcamVideo = document.getElementById('webcamVideo');
+        const webcamPlaceholder = document.getElementById('webcamPlaceholder');
+        const webcamResults = document.getElementById('webcamResults');
+        const webcamStatus = document.getElementById('webcamStatus');
+
+        let mediaStream = null;
+        let webcamIntervalId = null;
+        let isProcessingFrame = false;
+        let lastFrameTime = null;
+
+        // ══════════════════════════════════════════════
+        //  HISTORY
+        // ══════════════════════════════════════════════
+        const historyList = document.getElementById('historyList');
+
+        function loadHistory() {
+            try { return JSON.parse(localStorage.getItem('cv_history') || '[]'); }
+            catch { return []; }
+        }
+
+        function saveHistoryItem(item) {
+            const history = loadHistory();
+            history.unshift(item);
+            if (history.length > 50) history.length = 50;
+            localStorage.setItem('cv_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function removeHistoryItem(id) {
+            let history = loadHistory();
+            history = history.filter(h => h.id !== id);
+            localStorage.setItem('cv_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const history = loadHistory();
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <div class="icon">📭</div>
+                        <p>No sessions yet</p>
+                        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem;">Upload images or a video, or use the webcam — sessions are saved automatically.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            history.forEach(h => {
+                const date = new Date(h.timestamp);
+                const timeStr = date.toLocaleString();
+                const iconMap = { images: '📸', video: '🎬', webcam: '📹' };
+                html += `
+                    <div class="history-item animate-in" data-id="${h.id}" data-type="${h.type}" data-task="${h.taskId || ''}">
+                        <div class="h-icon">${iconMap[h.type] || '📁'}</div>
+                        <div class="h-info">
+                            <div class="h-title">${h.summary || h.type}</div>
+                            <div class="h-meta">${h.fileCount || 0} files · ${h.objectCount || 0} objects · ${h.classes || ''}</div>
+                        </div>
+                        <div class="h-time">${timeStr}</div>
+                        <button class="btn btn-sm" onclick="removeHistoryItem('${h.id}')">✕</button>
+                    </div>
+                `;
+            });
+            historyList.innerHTML = html;
+
+            // Click to show details
+            historyList.querySelectorAll('.history-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') return;
+                    const type = el.dataset.type;
+                    switchTab(type);
+                });
+            });
+        }
+
+        // ══════════════════════════════════════════════
+        //  CONFIDENCE FILTER
+        // ══════════════════════════════════════════════
         confSlider.addEventListener('input', () => {
             const val = parseInt(confSlider.value);
             confValue.textContent = val + '%';
             currentConfThreshold = val / 100;
-            if (currentRawDetections) {
-                applyConfidenceFilter();
-            }
+            if (currentRawDetections) applyConfidenceFilter();
         });
 
         function applyConfidenceFilter() {
             const threshold = currentConfThreshold;
-            const filteredDetections = currentRawDetections.filter(d => d.confidence >= threshold);
-
-            // Re-stats
+            const filtered = currentRawDetections.filter(d => d.confidence >= threshold);
             const totalImages = currentPerFile ? currentPerFile.length : 0;
-            const totalObjects = filteredDetections.length;
-            const classes = [...new Set(filteredDetections.map(d => d.class))];
-            statsBar.style.display = 'flex';
+            const classes = [...new Set(filtered.map(d => d.class))];
+
             statsBar.innerHTML = `
                 <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
-                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${filtered.length}</span></span>
                 <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
             `;
 
-            // Group by image
             const byImage = {};
-            for (const d of filteredDetections) {
-                const imgPath = d.image;
-                if (!byImage[imgPath]) byImage[imgPath] = [];
-                byImage[imgPath].push(d);
+            for (const d of filtered) {
+                const p = d.image;
+                if (!byImage[p]) byImage[p] = [];
+                byImage[p].push(d);
             }
 
-            // Update each card
             selectedFiles.forEach((file, idx) => {
                 const card = document.getElementById(`card-${idx}`);
                 if (!card) return;
-
                 const body = card.querySelector('.body');
-                const imgPath = `uploads/${currentTaskId}_${file.name}`;
-                const fileDets = byImage[imgPath] || [];
+                const p = `uploads/${currentTaskId}_${file.name}`;
+                const dets = byImage[p] || [];
 
-                // Update detection list
                 let listEl = body.querySelector('.detection-list');
                 let emptyEl = body.querySelector('.empty');
                 if (listEl) listEl.remove();
                 if (emptyEl) emptyEl.remove();
 
-                if (fileDets.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.className = 'empty';
-                    empty.textContent = '🔍 No objects detected (filtered)';
-                    body.appendChild(empty);
+                if (dets.length === 0) {
+                    const e = document.createElement('div');
+                    e.className = 'empty';
+                    e.textContent = '🔍 No objects detected (filtered)';
+                    body.appendChild(e);
                 } else {
                     const list = document.createElement('ul');
                     list.className = 'detection-list';
-                    fileDets.forEach(d => {
+                    dets.forEach(d => {
                         const item = document.createElement('li');
                         item.className = 'detection-item animate-up';
-                        const label = document.createElement('span');
-                        label.className = 'detection-class';
-                        label.textContent = d.class;
-                        const conf = document.createElement('span');
+                        const l = document.createElement('span');
+                        l.className = 'detection-class';
+                        l.textContent = d.class;
+                        const c = document.createElement('span');
                         const pct = d.confidence;
-                        let level = 'low';
-                        if (pct >= 0.7) level = 'high';
-                        else if (pct >= 0.4) level = 'medium';
-                        conf.className = `detection-conf ${level}`;
-                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(label);
-                        item.appendChild(conf);
+                        let lv = 'low';
+                        if (pct >= 0.7) lv = 'high';
+                        else if (pct >= 0.4) lv = 'medium';
+                        c.className = `detection-conf ${lv}`;
+                        c.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(l);
+                        item.appendChild(c);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
                 }
 
-                // Update count badge
                 const fname = body.querySelector('.filename');
                 if (fname) {
                     const existing = fname.querySelector('.count-badge');
                     if (existing) existing.remove();
-                    if (fileDets.length > 0) {
+                    if (dets.length > 0) {
                         const badge = document.createElement('span');
                         badge.className = 'count-badge';
-                        badge.textContent = `${fileDets.length}`;
+                        badge.textContent = dets.length;
                         fname.appendChild(badge);
                     }
                 }
 
-                // Redraw canvas with filtered boxes
-                const previewInfo = imagePreviews[idx];
-                if (previewInfo && previewInfo.img) {
-                    drawBoxes(card.querySelector('.preview-canvas'), previewInfo.img, fileDets);
+                const pi = imagePreviews[idx];
+                if (pi && pi.img) {
+                    drawBoxes(card.querySelector('.preview-canvas'), pi.img, dets);
                 }
             });
         }
 
-        // ---- File selection ----
+        // ══════════════════════════════════════════════
+        //  IMAGE FILE SELECTION
+        // ══════════════════════════════════════════════
         selectFilesBtn.addEventListener('click', () => fileInput.click());
         selectFolderBtn.addEventListener('click', () => folderInput.click());
-
         fileInput.addEventListener('change', () => handleSelectedFiles(fileInput.files));
         folderInput.addEventListener('change', () => handleSelectedFiles(folderInput.files));
 
-        // Drag & drop
         dropZone.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
             fileInput.click();
         });
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
@@ -677,33 +872,37 @@
 
         function handleSelectedFiles(files) {
             if (!files || files.length === 0) return;
-
-            const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
+            const valid = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
             selectedFiles = Array.from(files).filter(f => {
                 const ext = '.' + f.name.split('.').pop().toLowerCase();
-                return validExts.includes(ext);
+                return valid.includes(ext);
             });
-
             if (selectedFiles.length === 0) {
-                showStatus('No valid image files found. Accepted: JPG, PNG, WebP, BMP', 'error');
+                showImgStatus('No valid image files found. Accepted: JPG, PNG, WebP, BMP', 'error');
                 return;
             }
-
             fileCount.textContent = `${selectedFiles.length} image(s) selected`;
             uploadBtn.disabled = false;
+            switchTab('images');
             showPreviews(selectedFiles);
         }
 
-        // ---- Previews (canvas-based, with bounding box support) ----
+        function showImgStatus(msg, type) {
+            imgStatus.textContent = msg;
+            imgStatus.className = 'status-msg ' + type;
+        }
+
+        // ══════════════════════════════════════════════
+        //  PREVIEWS (canvas with bounding boxes)
+        // ══════════════════════════════════════════════
         function showPreviews(files) {
             resultsCard.style.display = 'block';
             statsBar.style.display = 'none';
             exportBtn.style.display = 'none';
             filterBar.style.display = 'none';
-
             imagePreviews = {};
-            const fragment = document.createDocumentFragment();
 
+            const fragment = document.createDocumentFragment();
             files.forEach((file, idx) => {
                 const card = document.createElement('div');
                 card.className = 'result-card animate-in';
@@ -711,8 +910,6 @@
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'preview-canvas';
-                canvas.id = `canvas-${idx}`;
-
                 const body = document.createElement('div');
                 body.className = 'body';
 
@@ -729,86 +926,66 @@
                 card.appendChild(canvas);
                 card.appendChild(body);
 
-                // Load the image onto the canvas
                 const img = new Image();
                 img.onload = () => {
                     imagePreviews[idx] = { img, canvas };
                     drawImageOnCanvas(canvas, img);
                 };
                 img.src = URL.createObjectURL(file);
-
                 fragment.appendChild(card);
             });
-
             resultsGrid.innerHTML = '';
             resultsGrid.appendChild(fragment);
         }
 
         function drawImageOnCanvas(canvas, img) {
-            const maxH = 200;
+            const maxH = 180;
             const scale = Math.min(1, maxH / img.naturalHeight);
-            const w = Math.round(img.naturalWidth * scale);
-            const h = Math.round(img.naturalHeight * scale);
-            canvas.width = w;
-            canvas.height = h;
+            canvas.width = Math.round(img.naturalWidth * scale);
+            canvas.height = Math.round(img.naturalHeight * scale);
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
         function drawBoxes(canvas, img, detections) {
-            const maxH = 200;
+            const maxH = 180;
             const scale = Math.min(1, maxH / img.naturalHeight);
             const w = Math.round(img.naturalWidth * scale);
             const h = Math.round(img.naturalHeight * scale);
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d');
-
-            // Draw image
             ctx.drawImage(img, 0, 0, w, h);
 
-            // Draw bounding boxes
             detections.forEach(d => {
                 const [x1, y1, x2, y2] = d.bbox;
-                const sx = x1 * scale;
-                const sy = y1 * scale;
-                const sw = (x2 - x1) * scale;
-                const sh = (y2 - y1) * scale;
+                const sx = x1 * scale, sy = y1 * scale;
+                const sw = (x2 - x1) * scale, sh = (y2 - y1) * scale;
+                let color = d.confidence >= 0.7 ? '#3fb950' : d.confidence >= 0.4 ? '#d2991d' : '#f85149';
 
-                // Use green for high conf, orange for mid, red for low
-                let color = '#3fb950';
-                if (d.confidence < 0.4) color = '#f85149';
-                else if (d.confidence < 0.7) color = '#d2991d';
-
-                // Bounding box rect
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(sx, sy, sw, sh);
 
-                // Label background
                 const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
-                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-                const textW = ctx.measureText(label).width;
+                ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+                const tw = ctx.measureText(label).width;
+                const lh = 18;
                 ctx.fillStyle = color;
-                const labelH = 20;
-                ctx.fillRect(sx, Math.max(0, sy - labelH), textW + 8, labelH);
-
-                // Label text
+                ctx.fillRect(sx, Math.max(0, sy - lh), tw + 6, lh);
                 ctx.fillStyle = '#fff';
-                ctx.fillText(label, sx + 4, Math.max(12, sy - 5));
+                ctx.fillText(label, sx + 3, Math.max(12, sy - 4));
             });
         }
 
-        // ---- Process ----
+        // ══════════════════════════════════════════════
+        //  PROCESS IMAGES
+        // ══════════════════════════════════════════════
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return;
-
-            document.querySelectorAll('.result-card .loading').forEach(el => {
-                el.textContent = '⏳ Processing';
-            });
-
+            document.querySelectorAll('.result-card .loading').forEach(el => { el.textContent = '⏳ Processing'; });
             uploadBtn.disabled = true;
-            showStatus(`Processing ${selectedFiles.length} image(s)...`, 'info');
+            showImgStatus(`Processing ${selectedFiles.length} image(s)...`, 'info');
 
             const formData = new FormData();
             selectedFiles.forEach(f => formData.append('files', f));
@@ -821,13 +998,11 @@
                 }
                 const data = await resp.json();
                 currentTaskId = data.task_id;
-                showStatus(`✅ ${data.files_processed} images processed — ${data.total_objects} objects detected`, 'success');
+                showImgStatus(`✅ ${data.files_processed} images processed — ${data.total_objects} objects detected`, 'success');
                 await loadResults(currentTaskId);
             } catch (err) {
-                showStatus(`❌ Error: ${err.message}`, 'error');
-                document.querySelectorAll('.result-card .loading').forEach(el => {
-                    el.textContent = '❌ Failed';
-                });
+                showImgStatus(`❌ Error: ${err.message}`, 'error');
+                document.querySelectorAll('.result-card .loading').forEach(el => { el.textContent = '❌ Failed'; });
                 uploadBtn.disabled = false;
             }
         });
@@ -840,13 +1015,29 @@
                 currentResults = data;
                 currentRawDetections = data.detections || [];
                 currentPerFile = data.per_file || [];
-
                 renderResults(data);
                 exportBtn.style.display = 'inline-block';
                 filterBar.style.display = 'flex';
+
+                // Update sidebar count
+                imgCount.textContent = data.total_objects || data.detections?.length || 0;
+
+                // Save to history
+                const classes = [...new Set((data.detections || []).map(d => d.class))];
+                saveHistoryItem({
+                    id: 'img_' + taskId,
+                    type: 'images',
+                    timestamp: Date.now(),
+                    taskId: taskId,
+                    summary: `${data.files_processed || 0} images · ${data.total_objects || 0} objects`,
+                    fileCount: data.files_processed || 0,
+                    objectCount: data.total_objects || 0,
+                    classes: classes.slice(0, 5).join(', '),
+                });
+
                 uploadBtn.disabled = false;
             } catch (err) {
-                showStatus(`❌ Failed to load results: ${err.message}`, 'error');
+                showImgStatus(`❌ Failed to load results: ${err.message}`, 'error');
                 uploadBtn.disabled = false;
             }
         }
@@ -855,66 +1046,60 @@
             const detections = currentRawDetections;
             const perFile = currentPerFile;
 
-            // Group detections by image path (unfiltered)
             const byImage = {};
             for (const d of detections) {
-                const imgPath = d.image;
-                if (!byImage[imgPath]) byImage[imgPath] = [];
-                byImage[imgPath].push(d);
+                const p = d.image;
+                if (!byImage[p]) byImage[p] = [];
+                byImage[p].push(d);
             }
 
-            // Stats
             const totalImages = perFile.length || Object.keys(byImage).length;
-            const totalObjects = detections.length;
             const classes = [...new Set(detections.map(d => d.class))];
             statsBar.style.display = 'flex';
             statsBar.innerHTML = `
                 <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
-                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${detections.length}</span></span>
                 <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
-                <span class="stat">⚡ <span class="num">${data.unique_classes || classes.length}</span> unique</span>
             `;
 
-            // Update each card
             selectedFiles.forEach((file, idx) => {
                 const card = document.getElementById(`card-${idx}`);
                 if (!card) return;
-
                 const body = card.querySelector('.body');
                 const loading = body.querySelector('.loading');
                 if (loading) loading.remove();
 
-                const oldList = body.querySelector('.detection-list');
+                let oldList = body.querySelector('.detection-list');
                 if (oldList) oldList.remove();
-                const oldEmpty = body.querySelector('.empty');
+                let oldEmpty = body.querySelector('.empty');
                 if (oldEmpty) oldEmpty.remove();
 
-                const imgPath = `uploads/${currentTaskId}_${file.name}`;
-                const fileDets = byImage[imgPath] || [];
+                const p = `uploads/${currentTaskId}_${file.name}`;
+                const dets = byImage[p] || [];
 
-                if (fileDets.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.className = 'empty';
-                    empty.textContent = '🔍 No objects detected';
-                    body.appendChild(empty);
+                if (dets.length === 0) {
+                    const e = document.createElement('div');
+                    e.className = 'empty';
+                    e.textContent = '🔍 No objects detected';
+                    body.appendChild(e);
                 } else {
                     const list = document.createElement('ul');
                     list.className = 'detection-list';
-                    fileDets.forEach(d => {
+                    dets.forEach(d => {
                         const item = document.createElement('li');
                         item.className = 'detection-item animate-up';
-                        const label = document.createElement('span');
-                        label.className = 'detection-class';
-                        label.textContent = d.class;
-                        const conf = document.createElement('span');
+                        const l = document.createElement('span');
+                        l.className = 'detection-class';
+                        l.textContent = d.class;
+                        const c = document.createElement('span');
                         const pct = d.confidence;
-                        let level = 'low';
-                        if (pct >= 0.7) level = 'high';
-                        else if (pct >= 0.4) level = 'medium';
-                        conf.className = `detection-conf ${level}`;
-                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(label);
-                        item.appendChild(conf);
+                        let lv = 'low';
+                        if (pct >= 0.7) lv = 'high';
+                        else if (pct >= 0.4) lv = 'medium';
+                        c.className = `detection-conf ${lv}`;
+                        c.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(l);
+                        item.appendChild(c);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
@@ -925,337 +1110,48 @@
                         if (existing) existing.remove();
                         const badge = document.createElement('span');
                         badge.className = 'count-badge';
-                        badge.textContent = `${fileDets.length}`;
+                        badge.textContent = dets.length;
                         fname.appendChild(badge);
                     }
                 }
 
-                // Draw bounding boxes
-                const previewInfo = imagePreviews[idx];
-                if (previewInfo && previewInfo.img) {
-                    drawBoxes(card.querySelector('.preview-canvas'), previewInfo.img, fileDets);
-                }
-            });
-        }
+                // Export annotated button
+                const existingBtn = body.querySelector('.dl-btn');
+                if (existingBtn) existingBtn.remove();
 
-        // ---- Video file selection ----
-        selectVideoBtn.addEventListener('click', () => videoInput.click());
-        videoInput.addEventListener('change', () => handleVideoSelected(videoInput.files[0]));
-
-        videoDropZone.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-            videoInput.click();
-        });
-        videoDropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            videoDropZone.classList.add('dragover');
-        });
-        videoDropZone.addEventListener('dragleave', () => {
-            videoDropZone.classList.remove('dragover');
-        });
-        videoDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            videoDropZone.classList.remove('dragover');
-            const videoFile = Array.from(e.dataTransfer.files).find(f => {
-                const ext = '.' + f.name.split('.').pop().toLowerCase();
-                return ['.mp4', '.avi', '.mov', '.mkv', '.webm'].includes(ext);
-            });
-            if (videoFile) handleVideoSelected(videoFile);
-        });
-
-        function handleVideoSelected(file) {
-            if (!file) return;
-            selectedVideo = file;
-
-            videoPreview.style.display = 'block';
-            videoEl.src = URL.createObjectURL(file);
-            videoInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-            processVideoBtn.disabled = false;
-            showVideoStatus('🎬 Video selected. Click "Process Video" to analyze.', 'info');
-        }
-
-        // ---- Process Video ----
-        processVideoBtn.addEventListener('click', async () => {
-            if (!selectedVideo) return;
-
-            processVideoBtn.disabled = true;
-            showVideoStatus(`⏳ Processing video: ${selectedVideo.name}...`, 'info');
-
-            const formData = new FormData();
-            formData.append('file', selectedVideo);
-
-            try {
-                const resp = await fetch('/upload/video', { method: 'POST', body: formData });
-                if (!resp.ok) {
-                    const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.error || `HTTP ${resp.status}`);
-                }
-                const data = await resp.json();
-                showVideoStatus(
-                    `✅ ${data.filename} — ${data.total_frames_processed} frames, ${data.total_objects} objects detected across ${data.duration_seconds}s`,
-                    'success'
-                );
-                renderVideoResults(data);
-            } catch (err) {
-                showVideoStatus(`❌ Error: ${err.message}`, 'error');
-                processVideoBtn.disabled = false;
-            }
-        });
-
-        function renderVideoResults(data) {
-            const frames = data.frames || [];
-
-            videoResultsCard.style.display = 'block';
-
-            // Stats
-            const totalFrames = frames.length;
-            const totalObjects = data.total_objects;
-            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(d => d.class)))];
-            videoStatsBar.style.display = 'flex';
-            videoStatsBar.innerHTML = `
-                <span class="stat">🎞️ Frames: <span class="num">${totalFrames}</span></span>
-                <span class="stat">⏱️ Duration: <span class="num">${data.duration_seconds}s</span></span>
-                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
-                <span class="stat">🏷️ Classes: <span class="num">${allClasses.length}</span></span>
-            `;
-            const hasDets = frames.filter(f => f.object_count > 0).length;
-            videoSummary.textContent = `Frames with detections: ${hasDets} / ${totalFrames}`;
-
-            // Build timeline
-            videoTimeline.style.display = 'flex';
-            videoTimeline.innerHTML = '<span class="tl-label">⏱️ Timeline:</span>';
-            frames.forEach((frame, idx) => {
-                const dot = document.createElement('div');
-                dot.className = 'tl-dot';
-                dot.dataset.frame = idx;
-                dot.title = `Frame ${idx} @ ${frame.timestamp}s (${frame.object_count} objects)`;
-                dot.style.background = frame.object_count > 0 ? 'var(--green)' : 'var(--border)';
-                dot.addEventListener('click', () => {
-                    document.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('active'));
-                    dot.classList.add('active');
-                    const card = document.getElementById(`vframe-${idx}`);
-                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const dlBtn = document.createElement('button');
+                dlBtn.className = 'btn btn-sm dl-btn';
+                dlBtn.textContent = '📥 Download';
+                dlBtn.style.marginTop = '0.5rem';
+                dlBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const canvas = card.querySelector('.preview-canvas');
+                    if (canvas) {
+                        const link = document.createElement('a');
+                        link.download = `annotated_${file.name.replace(/\.[^.]+$/, '')}.png`;
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    }
                 });
-                videoTimeline.appendChild(dot);
+                body.appendChild(dlBtn);
+
+                const pi = imagePreviews[idx];
+                if (pi && pi.img) {
+                    drawBoxes(card.querySelector('.preview-canvas'), pi.img, dets);
+                }
             });
-
-            // Build frame cards
-            const fragment = document.createDocumentFragment();
-            frames.forEach((frame, idx) => {
-                const card = document.createElement('div');
-                card.className = 'frame-card animate-in';
-                card.id = `vframe-${idx}`;
-                card.style.animationDelay = `${idx * 0.05}s`;
-
-                const header = document.createElement('div');
-                header.className = 'frame-header';
-                const hasDet = frame.object_count > 0 ? '🎯' : '🔍';
-                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>${hasDet} Frame ${frame.frame_number} (${frame.object_count})</span>`;
-
-                const body = document.createElement('div');
-                body.className = 'frame-body';
-
-                if (frame.object_count === 0) {
-                    const empty = document.createElement('div');
-                    empty.className = 'empty';
-                    empty.textContent = '🔍 No objects detected';
-                    body.appendChild(empty);
-                } else {
-                    const list = document.createElement('ul');
-                    list.className = 'detection-list';
-                    frame.detections.forEach(d => {
-                        const item = document.createElement('li');
-                        item.className = 'detection-item';
-                        const label = document.createElement('span');
-                        label.className = 'detection-class';
-                        label.textContent = d.class;
-                        const conf = document.createElement('span');
-                        const pct = d.confidence;
-                        let level = 'low';
-                        if (pct >= 0.7) level = 'high';
-                        else if (pct >= 0.4) level = 'medium';
-                        conf.className = `detection-conf ${level}`;
-                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(label);
-                        item.appendChild(conf);
-                        list.appendChild(item);
-                    });
-                    body.appendChild(list);
-                }
-
-                card.appendChild(header);
-                card.appendChild(body);
-                fragment.appendChild(card);
-            });
-
-            videoResultsGrid.innerHTML = '';
-            videoResultsGrid.appendChild(fragment);
-            processVideoBtn.disabled = false;
         }
 
-        // ---- Video helpers ----
-        function showVideoStatus(msg, type) {
-            videoStatus.textContent = msg;
-            videoStatus.className = type;
-            videoStatus.style.display = 'block';
-        }
-
-        // ---- Webcam ----
-        const startWebcamBtn = document.getElementById('startWebcamBtn');
-        const stopWebcamBtn = document.getElementById('stopWebcamBtn');
-        const webcamVideo = document.getElementById('webcamVideo');
-        const webcamPlaceholder = document.getElementById('webcamPlaceholder');
-        const webcamResults = document.getElementById('webcamResults');
-        const webcamStatus = document.getElementById('webcamStatus');
-
-        let mediaStream = null;
-        let webcamIntervalId = null;
-        let isProcessingFrame = false;
-        let lastFrameTime = null;
-
-        startWebcamBtn.addEventListener('click', startWebcam);
-        stopWebcamBtn.addEventListener('click', stopWebcam);
-
-        async function startWebcam() {
-            try {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    showWebcamStatus('Camera access not supported in this browser. Try Chrome or Firefox.', 'error');
-                    return;
-                }
-
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: 'user',
-                    },
-                    audio: false,
-                });
-
-                mediaStream = stream;
-                webcamVideo.srcObject = stream;
-                webcamVideo.style.display = 'block';
-                webcamPlaceholder.style.display = 'none';
-
-                startWebcamBtn.disabled = true;
-                stopWebcamBtn.disabled = false;
-
-                showWebcamStatus('📷 Camera active <span class="webcam-live-badge">LIVE</span> — detecting at ~1 FPS', 'success');
-
-                webcamIntervalId = setInterval(captureAndDetect, 1000);
-            } catch (err) {
-                const msg = err.name === 'NotAllowedError'
-                    ? 'Camera permission denied. Please allow camera access and try again.'
-                    : err.name === 'NotFoundError'
-                        ? 'No camera found on this device.'
-                        : `Camera error: ${err.message}`;
-                showWebcamStatus(msg, 'error');
-            }
-        }
-
-        function stopWebcam() {
-            if (webcamIntervalId) {
-                clearInterval(webcamIntervalId);
-                webcamIntervalId = null;
-            }
-
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-
-            webcamVideo.srcObject = null;
-            webcamVideo.style.display = 'none';
-            webcamPlaceholder.style.display = 'flex';
-
-            startWebcamBtn.disabled = false;
-            stopWebcamBtn.disabled = true;
-            isProcessingFrame = false;
-            lastFrameTime = null;
-
-            showWebcamStatus('⏹ Camera stopped', 'info');
-            webcamResults.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>';
-        }
-
-        async function captureAndDetect() {
-            if (isProcessingFrame || !mediaStream) return;
-
-            const video = webcamVideo;
-            if (!video.videoWidth || !video.videoHeight) return;
-
-            isProcessingFrame = true;
-
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0);
-
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
-
-                const formData = new FormData();
-                formData.append('file', blob, 'frame.jpg');
-
-                const resp = await fetch('/detect/frame', { method: 'POST', body: formData });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-
-                const data = await resp.json();
-                lastFrameTime = Date.now();
-
-                renderWebcamResults(data);
-            } catch (err) {
-                webcamResults.innerHTML = `<p style="color: var(--red); font-size: 0.85rem;">❌ Detection error: ${err.message}</p>`;
-            } finally {
-                isProcessingFrame = false;
-            }
-        }
-
-        function renderWebcamResults(data) {
-            const detections = data.detections || [];
-            const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
-
-            // Apply confidence threshold
-            const filtered = detections.filter(d => d.confidence >= currentConfThreshold);
-
-            let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-weight: 600; font-size: 0.9rem;">🎯 ${filtered.length} objects</span>
-                <span class="webcam-timer">⏱️ ${elapsed}s ago</span>
-            </div>`;
-
-            if (filtered.length === 0) {
-                html += '<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">🔍 No objects detected in this frame</p>';
-            } else {
-                html += '<div>';
-                filtered.slice(0, 10).forEach(d => {
-                    html += `<div class="webcam-detection-item animate-up">
-                        <span class="webcam-class">${d.class}</span>
-                        <span class="webcam-conf">${(d.confidence * 100).toFixed(1)}%</span>
-                    </div>`;
-                });
-                if (filtered.length > 10) {
-                    html += `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 0.25rem;">+ ${filtered.length - 10} more</p>`;
-                }
-                html += '</div>';
-            }
-
-            webcamResults.innerHTML = html;
-        }
-
-        function showWebcamStatus(msg, type) {
-            webcamStatus.innerHTML = msg;
-            webcamStatus.className = type;
-            webcamStatus.style.display = 'block';
-        }
-
-        // ---- Export ----
+        // ══════════════════════════════════════════════
+        //  EXPORT CSV
+        // ══════════════════════════════════════════════
         exportBtn.addEventListener('click', () => {
-            if (currentTaskId) {
-                window.open(`/export/${currentTaskId}`, '_blank');
-            }
+            if (currentTaskId) window.open(`/export/${currentTaskId}`, '_blank');
         });
 
-        // ---- Clear ----
+        // ══════════════════════════════════════════════
+        //  CLEAR
+        // ══════════════════════════════════════════════
         clearBtn.addEventListener('click', () => {
             selectedFiles = [];
             currentTaskId = null;
@@ -1275,11 +1171,12 @@
             statsBar.style.display = 'none';
             filterBar.style.display = 'none';
             exportBtn.style.display = 'none';
-            statusEl.className = '';
-            statusEl.style.display = 'none';
+            imgStatus.className = 'status-msg';
+            imgStatus.style.display = 'none';
+            imgCount.textContent = '';
             dropZone.innerHTML = `
                 <div class="icon">📁</div>
-                <p>Drop images here</p>
+                <p>Drop images here or click to select</p>
                 <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
                 <div class="upload-methods">
                     <button class="btn" id="selectFilesBtn">📎 Select Files</button>
@@ -1294,12 +1191,277 @@
             });
         });
 
-        // ---- Helpers ----
-        function showStatus(msg, type) {
-            statusEl.textContent = msg;
-            statusEl.className = type;
-            statusEl.style.display = 'block';
+        // ══════════════════════════════════════════════
+        //  VIDEO
+        // ══════════════════════════════════════════════
+        selectVideoBtn.addEventListener('click', () => videoInput.click());
+        videoInput.addEventListener('change', () => handleVideoSelected(videoInput.files[0]));
+
+        videoDropZone.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            videoInput.click();
+        });
+        videoDropZone.addEventListener('dragover', (e) => { e.preventDefault(); videoDropZone.classList.add('dragover'); });
+        videoDropZone.addEventListener('dragleave', () => { videoDropZone.classList.remove('dragover'); });
+        videoDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            videoDropZone.classList.remove('dragover');
+            const vf = Array.from(e.dataTransfer.files).find(f => {
+                const ext = '.' + f.name.split('.').pop().toLowerCase();
+                return ['.mp4', '.avi', '.mov', '.mkv', '.webm'].includes(ext);
+            });
+            if (vf) handleVideoSelected(vf);
+        });
+
+        function handleVideoSelected(file) {
+            if (!file) return;
+            selectedVideo = file;
+            videoPreview.style.display = 'block';
+            videoEl.src = URL.createObjectURL(file);
+            videoInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+            processVideoBtn.disabled = false;
+            showVideoStatus('🎬 Video selected. Click "Process Video" to analyze.', 'info');
         }
+
+        function showVideoStatus(msg, type) {
+            videoStatus.textContent = msg;
+            videoStatus.className = 'status-msg ' + type;
+        }
+
+        processVideoBtn.addEventListener('click', async () => {
+            if (!selectedVideo) return;
+            processVideoBtn.disabled = true;
+            showVideoStatus(`⏳ Processing video: ${selectedVideo.name}...`, 'info');
+
+            const formData = new FormData();
+            formData.append('file', selectedVideo);
+
+            try {
+                const resp = await fetch('/upload/video', { method: 'POST', body: formData });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.error || `HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                showVideoStatus(
+                    `✅ ${data.filename} — ${data.total_frames_processed} frames, ${data.total_objects} objects detected across ${data.duration_seconds}s`,
+                    'success'
+                );
+                renderVideoResults(data);
+
+                // Update sidebar count
+                vidCount.textContent = data.total_objects || 0;
+
+                // Save history
+                const classes = [...new Set((data.frames || []).flatMap(f => f.detections.map(d => d.class)))];
+                saveHistoryItem({
+                    id: 'vid_' + (data.video_id || Date.now()),
+                    type: 'video',
+                    timestamp: Date.now(),
+                    summary: `${data.filename} · ${data.total_frames_processed} frames · ${data.total_objects} objects`,
+                    fileCount: data.total_frames_processed || 0,
+                    objectCount: data.total_objects || 0,
+                    classes: classes.slice(0, 5).join(', '),
+                });
+            } catch (err) {
+                showVideoStatus(`❌ Error: ${err.message}`, 'error');
+                processVideoBtn.disabled = false;
+            }
+        });
+
+        function renderVideoResults(data) {
+            const frames = data.frames || [];
+            videoResultsCard.style.display = 'block';
+
+            const totalFrames = frames.length;
+            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(d => d.class)))];
+            videoStatsBar.style.display = 'flex';
+            videoStatsBar.innerHTML = `
+                <span class="stat">🎞️ Frames: <span class="num">${totalFrames}</span></span>
+                <span class="stat">⏱️ Duration: <span class="num">${data.duration_seconds}s</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${data.total_objects}</span></span>
+                <span class="stat">🏷️ Classes: <span class="num">${allClasses.length}</span></span>
+            `;
+            const hasDets = frames.filter(f => f.object_count > 0).length;
+            videoSummary.textContent = `Frames with detections: ${hasDets} / ${totalFrames}`;
+
+            // Timeline
+            videoTimeline.style.display = 'flex';
+            videoTimeline.innerHTML = '<span class="tl-label">⏱️ Timeline:</span>';
+            frames.forEach((frame, idx) => {
+                const dot = document.createElement('div');
+                dot.className = 'tl-dot';
+                dot.dataset.frame = idx;
+                dot.title = `Frame ${idx} @ ${frame.timestamp}s (${frame.object_count} objects)`;
+                dot.style.background = frame.object_count > 0 ? 'var(--green)' : 'var(--border)';
+                dot.addEventListener('click', () => {
+                    document.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    const card = document.getElementById(`vframe-${idx}`);
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                videoTimeline.appendChild(dot);
+            });
+
+            // Frame cards
+            const fragment = document.createDocumentFragment();
+            frames.forEach((frame, idx) => {
+                const card = document.createElement('div');
+                card.className = 'frame-card animate-in';
+                card.id = `vframe-${idx}`;
+                card.style.animationDelay = `${idx * 0.04}s`;
+
+                const header = document.createElement('div');
+                header.className = 'frame-header';
+                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>Frame ${frame.frame_number} (${frame.object_count})</span>`;
+
+                const body = document.createElement('div');
+                body.className = 'frame-body';
+
+                if (frame.object_count === 0) {
+                    const e = document.createElement('div');
+                    e.className = 'empty';
+                    e.textContent = '🔍 No objects detected';
+                    body.appendChild(e);
+                } else {
+                    const list = document.createElement('ul');
+                    list.className = 'detection-list';
+                    frame.detections.forEach(d => {
+                        const item = document.createElement('li');
+                        item.className = 'detection-item';
+                        const l = document.createElement('span');
+                        l.className = 'detection-class';
+                        l.textContent = d.class;
+                        const c = document.createElement('span');
+                        const pct = d.confidence;
+                        let lv = 'low';
+                        if (pct >= 0.7) lv = 'high';
+                        else if (pct >= 0.4) lv = 'medium';
+                        c.className = `detection-conf ${lv}`;
+                        c.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(l);
+                        item.appendChild(c);
+                        list.appendChild(item);
+                    });
+                    body.appendChild(list);
+                }
+
+                card.appendChild(header);
+                card.appendChild(body);
+                fragment.appendChild(card);
+            });
+            videoResultsGrid.innerHTML = '';
+            videoResultsGrid.appendChild(fragment);
+            processVideoBtn.disabled = false;
+        }
+
+        // ══════════════════════════════════════════════
+        //  WEBCAM
+        // ══════════════════════════════════════════════
+        startWebcamBtn.addEventListener('click', startWebcam);
+        stopWebcamBtn.addEventListener('click', stopWebcam);
+
+        async function startWebcam() {
+            try {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    showWebcamStatus('Camera not supported in this browser', 'error');
+                    return;
+                }
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                    audio: false,
+                });
+                mediaStream = stream;
+                webcamVideo.srcObject = stream;
+                webcamVideo.style.display = 'block';
+                webcamPlaceholder.style.display = 'none';
+                startWebcamBtn.disabled = true;
+                stopWebcamBtn.disabled = false;
+                showWebcamStatus('📷 Camera active <span class="webcam-live-badge">LIVE</span>', 'success');
+                webcamIntervalId = setInterval(captureAndDetect, 1000);
+            } catch (err) {
+                const msg = err.name === 'NotAllowedError' ? 'Camera permission denied.'
+                    : err.name === 'NotFoundError' ? 'No camera found.'
+                    : `Camera error: ${err.message}`;
+                showWebcamStatus(msg, 'error');
+            }
+        }
+
+        function stopWebcam() {
+            if (webcamIntervalId) { clearInterval(webcamIntervalId); webcamIntervalId = null; }
+            if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+            webcamVideo.srcObject = null;
+            webcamVideo.style.display = 'none';
+            webcamPlaceholder.style.display = 'flex';
+            startWebcamBtn.disabled = false;
+            stopWebcamBtn.disabled = true;
+            isProcessingFrame = false;
+            lastFrameTime = null;
+            showWebcamStatus('⏹ Camera stopped', 'info');
+            webcamResults.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>';
+        }
+
+        async function captureAndDetect() {
+            if (isProcessingFrame || !mediaStream) return;
+            const video = webcamVideo;
+            if (!video.videoWidth || !video.videoHeight) return;
+            isProcessingFrame = true;
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0);
+                const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
+                const fd = new FormData();
+                fd.append('file', blob, 'frame.jpg');
+                const resp = await fetch('/detect/frame', { method: 'POST', body: fd });
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                lastFrameTime = Date.now();
+                renderWebcamResults(data);
+            } catch (err) {
+                webcamResults.innerHTML = `<p style="color:var(--red);font-size:0.85rem;">❌ Detection error: ${err.message}</p>`;
+            } finally { isProcessingFrame = false; }
+        }
+
+        function renderWebcamResults(data) {
+            const detections = data.detections || [];
+            const filtered = detections.filter(d => d.confidence >= currentConfThreshold);
+            const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
+
+            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                <span style="font-weight:600;font-size:0.88rem;">🎯 ${filtered.length} objects</span>
+                <span class="webcam-timer">⏱️ ${elapsed}s ago</span>
+            </div>`;
+
+            if (filtered.length === 0) {
+                html += '<p style="color:var(--text-muted);font-size:0.82rem;font-style:italic;">🔍 No objects detected in this frame</p>';
+            } else {
+                html += '<div>';
+                filtered.slice(0, 10).forEach(d => {
+                    html += `<div class="webcam-detection-item animate-up">
+                        <span class="webcam-class">${d.class}</span>
+                        <span class="webcam-conf">${(d.confidence * 100).toFixed(1)}%</span>
+                    </div>`;
+                });
+                if (filtered.length > 10) {
+                    html += `<p style="color:var(--text-muted);font-size:0.78rem;text-align:center;margin-top:0.2rem;">+ ${filtered.length - 10} more</p>`;
+                }
+                html += '</div>';
+            }
+            webcamResults.innerHTML = html;
+        }
+
+        function showWebcamStatus(msg, type) {
+            webcamStatus.innerHTML = msg;
+            webcamStatus.className = 'webcam-status ' + type;
+        }
+
+        // ══════════════════════════════════════════════
+        //  INIT: render history on load
+        // ══════════════════════════════════════════════
+        renderHistory();
     </script>
 </body>
 </html>
