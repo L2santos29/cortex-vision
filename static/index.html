@@ -593,27 +593,27 @@
                     <span class="brand-badge">Pre-Alpha</span>
                 </div>
             </div>
-            <nav class="sidebar-nav" id="sidebarNav">
-                <button class="tab-btn active" data-tab="images">
+            <nav class="sidebar-nav" id="sidebarNav" role="tablist">
+                <button class="tab-btn active" data-tab="images" role="tab" aria-selected="true">
                     📸 Images <span class="count" id="imgCount"></span>
                 </button>
-                <button class="tab-btn" data-tab="video">
+                <button class="tab-btn" data-tab="video" role="tab" aria-selected="false">
                     🎬 Video <span class="count" id="vidCount"></span>
                 </button>
-                <button class="tab-btn" data-tab="webcam">
+                <button class="tab-btn" data-tab="webcam" role="tab" aria-selected="false">
                     📹 Webcam
                 </button>
-                <button class="tab-btn" data-tab="history">
+                <button class="tab-btn" data-tab="history" role="tab" aria-selected="false">
                     📊 History
                 </button>
-                <button class="tab-btn" data-tab="about">
+                <button class="tab-btn" data-tab="about" role="tab" aria-selected="false">
                     📖 About
                 </button>
             </nav>
             <div class="sidebar-footer">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
                     <span style="font-size:0.7rem;color:var(--text-muted);">v0.1.0 · YOLOv8 · FastAPI</span>
-                    <button id="themeToggle" style="background:none;border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.5rem;cursor:pointer;font-size:0.8rem;color:var(--text-muted);transition:border-color 0.2s;" title="Toggle theme">🌙</button>
+                    <button id="themeToggle" aria-label="Toggle theme" style="background:none;border:1px solid var(--border);border-radius:6px;padding:0.25rem 0.5rem;cursor:pointer;font-size:0.8rem;color:var(--text-muted);transition:border-color 0.2s;" title="Toggle theme">🌙</button>
                 </div>
             </div>
         </aside>
@@ -622,7 +622,7 @@
         <main class="content">
 
             <!-- ════════ TAB: IMAGES ════════ -->
-            <div class="tab-content active" id="tab-images">
+            <section class="tab-content active" id="tab-images" role="tabpanel">
                 <div class="card">
                     <h2>📤 Upload Images</h2>
                     <div class="upload-area" id="dropZone">
@@ -659,10 +659,10 @@
                     <div class="stats-bar" id="statsBar" style="display: none;"></div>
                     <div class="results-grid" id="resultsGrid"></div>
                 </div>
-            </div>
+            </section>
 
             <!-- ════════ TAB: VIDEO ════════ -->
-            <div class="tab-content" id="tab-video">
+            <section class="tab-content" id="tab-video" role="tabpanel">
                 <div class="card">
                     <h2>🎬 Upload Video</h2>
                     <div class="upload-area" id="videoDropZone">
@@ -695,10 +695,10 @@
                     <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
                     <div class="results-grid" id="videoResultsGrid"></div>
                 </div>
-            </div>
+            </section>
 
             <!-- ════════ TAB: WEBCAM ════════ -->
-            <div class="tab-content" id="tab-webcam">
+            <section class="tab-content" id="tab-webcam" role="tabpanel">
                 <div class="card">
                     <h2>📹 Live Webcam</h2>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Real-time detection at ~1 FPS. Frames are sent to the server and processed in memory.</p>
@@ -726,10 +726,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <!-- ════════ TAB: HISTORY ════════ -->
-            <div class="tab-content" id="tab-history">
+            <section class="tab-content" id="tab-history" role="tabpanel">
                 <div class="card">
                     <h2>📊 Session History</h2>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
@@ -737,10 +737,10 @@
                     </p>
                     <div id="historyList" class="history-list"></div>
                 </div>
-            </div>
+            </section>
 
             <!-- ════════ TAB: ABOUT ════════ -->
-            <div class="tab-content" id="tab-about">
+            <section class="tab-content" id="tab-about" role="tabpanel">
                 <div class="card">
                     <h2>📖 About Cortex-Vision</h2>
                     <div style="display:flex;flex-direction:column;gap:1.25rem;">
@@ -786,7 +786,7 @@
 
                     </div>
                 </div>
-            </div>
+            </section>
 
         </main>
     </div>
@@ -805,7 +805,10 @@
         };
 
         function switchTab(tabId) {
-            tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+            tabBtns.forEach(b => {
+                b.classList.toggle('active', b.dataset.tab === tabId);
+                b.setAttribute('aria-selected', b.dataset.tab === tabId);
+            });
             Object.entries(tabContents).forEach(([id, el]) => {
                 el.classList.toggle('active', id === tabId);
             });
@@ -965,9 +968,9 @@
 
         function applyConfidenceFilter() {
             const threshold = currentConfThreshold;
-            const filtered = currentRawDetections.filter(d => d.confidence >= threshold);
+            const filtered = currentRawDetections.filter(det => det.confidence >= threshold);
             const totalImages = currentPerFile ? currentPerFile.length : 0;
-            const classes = [...new Set(filtered.map(d => d.class))];
+            const classes = [...new Set(filtered.map(det => det.class))];
 
             statsBar.innerHTML = `
                 <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
@@ -976,18 +979,18 @@
             `;
 
             const byImage = {};
-            for (const d of filtered) {
-                const p = d.image;
-                if (!byImage[p]) byImage[p] = [];
-                byImage[p].push(d);
+            for (const det of filtered) {
+                const imgPath = det.image;
+                if (!byImage[imgPath]) byImage[imgPath] = [];
+                byImage[imgPath].push(det);
             }
 
             selectedFiles.forEach((file, idx) => {
                 const card = document.getElementById(`card-${idx}`);
                 if (!card) return;
                 const body = card.querySelector('.body');
-                const p = `uploads/${currentTaskId}_${file.name}`;
-                const dets = byImage[p] || [];
+                const imgPath = `uploads/${currentTaskId}_${file.name}`;
+                const dets = byImage[imgPath] || [];
 
                 let listEl = body.querySelector('.detection-list');
                 let emptyEl = body.querySelector('.empty');
@@ -1002,21 +1005,21 @@
                 } else {
                     const list = document.createElement('ul');
                     list.className = 'detection-list';
-                    dets.forEach(d => {
+                    dets.forEach(det => {
                         const item = document.createElement('li');
                         item.className = 'detection-item animate-up';
-                        const l = document.createElement('span');
-                        l.className = 'detection-class';
-                        l.textContent = d.class;
-                        const c = document.createElement('span');
-                        const pct = d.confidence;
+                        const labelEl = document.createElement('span');
+                        labelEl.className = 'detection-class';
+                        labelEl.textContent = det.class;
+                        const confSpan = document.createElement('span');
+                        const pct = det.confidence;
                         let lv = 'low';
                         if (pct >= 0.7) lv = 'high';
                         else if (pct >= 0.4) lv = 'medium';
-                        c.className = `detection-conf ${lv}`;
-                        c.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(l);
-                        item.appendChild(c);
+                        confSpan.className = `detection-conf ${lv}`;
+                        confSpan.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(labelEl);
+                        item.appendChild(confSpan);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
@@ -1165,20 +1168,20 @@
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
 
-            detections.forEach(d => {
-                const [x1, y1, x2, y2] = d.bbox;
+            detections.forEach(det => {
+                const [x1, y1, x2, y2] = det.bbox;
                 const sx = x1 * scale, sy = y1 * scale;
                 const sw = (x2 - x1) * scale, sh = (y2 - y1) * scale;
 
                 // Smooth gradient: red (0) → yellow (0.5) → green (1.0)
-                const hue = d.confidence * 120;
+                const hue = det.confidence * 120;
                 const color = `hsl(${hue}, 80%, 45%)`;
 
                 ctx.strokeStyle = color;
                 ctx.lineWidth = Math.max(1.5, sw * 0.005);
                 ctx.strokeRect(sx, sy, sw, sh);
 
-                const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
+                const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
                 ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
                 const tw = ctx.measureText(label).width;
                 const lh = 18;
@@ -1192,8 +1195,8 @@
         // ---- Class chart ----
         function renderClassChart(containerId, detections) {
             const counts = {};
-            for (const d of detections) {
-                counts[d.class] = (counts[d.class] || 0) + 1;
+            for (const det of detections) {
+                counts[det.class] = (counts[det.class] || 0) + 1;
             }
             const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
             const maxVal = Math.max(...entries.map(e => e[1]), 1);
@@ -1316,7 +1319,7 @@
                 imgCount.textContent = data.total_objects || data.detections?.length || 0;
 
                 // Save to history
-                const classes = [...new Set((data.detections || []).map(d => d.class))];
+                const classes = [...new Set((data.detections || []).map(det => det.class))];
                 saveHistoryItem({
                     id: 'img_' + taskId,
                     type: 'images',
@@ -1340,14 +1343,14 @@
             const perFile = currentPerFile;
 
             const byImage = {};
-            for (const d of detections) {
-                const p = d.image;
-                if (!byImage[p]) byImage[p] = [];
-                byImage[p].push(d);
+            for (const det of detections) {
+                const imgPath = det.image;
+                if (!byImage[imgPath]) byImage[imgPath] = [];
+                byImage[imgPath].push(det);
             }
 
             const totalImages = perFile.length || Object.keys(byImage).length;
-            const classes = [...new Set(detections.map(d => d.class))];
+            const classes = [...new Set(detections.map(det => det.class))];
             statsBar.style.display = 'flex';
             statsBar.innerHTML = `
                 <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
@@ -1367,8 +1370,8 @@
                 let oldEmpty = body.querySelector('.empty');
                 if (oldEmpty) oldEmpty.remove();
 
-                const p = `uploads/${currentTaskId}_${file.name}`;
-                const dets = byImage[p] || [];
+                const imgPath = `uploads/${currentTaskId}_${file.name}`;
+                const dets = byImage[imgPath] || [];
 
                 if (dets.length === 0) {
                     const e = document.createElement('div');
@@ -1378,21 +1381,21 @@
                 } else {
                     const list = document.createElement('ul');
                     list.className = 'detection-list';
-                    dets.forEach(d => {
+                    dets.forEach(det => {
                         const item = document.createElement('li');
                         item.className = 'detection-item animate-up';
-                        const l = document.createElement('span');
-                        l.className = 'detection-class';
-                        l.textContent = d.class;
-                        const c = document.createElement('span');
-                        const pct = d.confidence;
+                        const labelEl = document.createElement('span');
+                        labelEl.className = 'detection-class';
+                        labelEl.textContent = det.class;
+                        const confSpan = document.createElement('span');
+                        const pct = det.confidence;
                         let lv = 'low';
                         if (pct >= 0.7) lv = 'high';
                         else if (pct >= 0.4) lv = 'medium';
-                        c.className = `detection-conf ${lv}`;
-                        c.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(l);
-                        item.appendChild(c);
+                        confSpan.className = `detection-conf ${lv}`;
+                        confSpan.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(labelEl);
+                        item.appendChild(confSpan);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
@@ -1548,7 +1551,7 @@
                 vidCount.textContent = data.total_objects || 0;
 
                 // Save history
-                const classes = [...new Set((data.frames || []).flatMap(f => f.detections.map(d => d.class)))];
+                const classes = [...new Set((data.frames || []).flatMap(f => f.detections.map(det => det.class)))];
                 saveHistoryItem({
                     id: 'vid_' + (data.video_id || Date.now()),
                     type: 'video',
@@ -1571,7 +1574,7 @@
             videoChartBox.classList.remove('visible');
 
             const totalFrames = frames.length;
-            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(d => d.class)))];
+            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(det => det.class)))];
             videoStatsBar.style.display = 'flex';
             videoStatsBar.innerHTML = `
                 <span class="stat">🎞️ Frames: <span class="num">${totalFrames}</span></span>
@@ -1633,21 +1636,21 @@
                 } else {
                     const list = document.createElement('ul');
                     list.className = 'detection-list';
-                    frame.detections.forEach(d => {
+                    frame.detections.forEach(det => {
                         const item = document.createElement('li');
                         item.className = 'detection-item';
-                        const l = document.createElement('span');
-                        l.className = 'detection-class';
-                        l.textContent = d.class;
-                        const c = document.createElement('span');
-                        const pct = d.confidence;
+                        const labelEl = document.createElement('span');
+                        labelEl.className = 'detection-class';
+                        labelEl.textContent = det.class;
+                        const confSpan = document.createElement('span');
+                        const pct = det.confidence;
                         let lv = 'low';
                         if (pct >= 0.7) lv = 'high';
                         else if (pct >= 0.4) lv = 'medium';
-                        c.className = `detection-conf ${lv}`;
-                        c.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(l);
-                        item.appendChild(c);
+                        confSpan.className = `detection-conf ${lv}`;
+                        confSpan.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(labelEl);
+                        item.appendChild(confSpan);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
@@ -1735,7 +1738,7 @@
 
         function renderWebcamResults(data) {
             const detections = data.detections || [];
-            const filtered = detections.filter(d => d.confidence >= currentConfThreshold);
+            const filtered = detections.filter(det => det.confidence >= currentConfThreshold);
             const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
 
             // Draw bounding boxes on overlay canvas
@@ -1753,13 +1756,13 @@
                 const sx = rect.width / video.videoWidth;
                 const sy = rect.height / video.videoHeight;
 
-                filtered.forEach(d => {
-                    const [x1, y1, x2, y2] = d.bbox;
+                filtered.forEach(det => {
+                    const [x1, y1, x2, y2] = det.bbox;
                     const cx = x1 * sx, cy = y1 * sy;
                     const cw = (x2 - x1) * sx, ch = (y2 - y1) * sy;
 
                     // Smooth color: red → yellow → green
-                    const hue = d.confidence * 120;
+                    const hue = det.confidence * 120;
                     const color = `hsl(${hue}, 80%, 45%)`;
 
                     ctx.strokeStyle = color;
@@ -1767,7 +1770,7 @@
                     ctx.strokeRect(cx, cy, cw, ch);
 
                     // Label
-                    const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
+                    const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
                     ctx.font = 'bold 13px -apple-system, sans-serif';
                     const tw = ctx.measureText(label).width;
                     const lh = 20;
@@ -1787,10 +1790,10 @@
                 html += '<p style="color:var(--text-muted);font-size:0.82rem;font-style:italic;">🔍 No objects detected in this frame</p>';
             } else {
                 html += '<div>';
-                filtered.slice(0, 10).forEach(d => {
+                filtered.slice(0, 10).forEach(det => {
                     html += `<div class="webcam-detection-item animate-up">
-                        <span class="webcam-class">${d.class}</span>
-                        <span class="webcam-conf">${(d.confidence * 100).toFixed(1)}%</span>
+                        <span class="webcam-class">${det.class}</span>
+                        <span class="webcam-conf">${(det.confidence * 100).toFixed(1)}%</span>
                     </div>`;
                 });
                 if (filtered.length > 10) {

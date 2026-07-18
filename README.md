@@ -2,8 +2,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![YOLOv8](https://img.shields.io/badge/YOLOv8-Ultralytics-7C3AED)](https://docs.ultralytics.com/)
-[![Status](https://img.shields.io/badge/Status-Pre--Alpha-FF6B35)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Object Recognition Platform** — Upload images or videos, or use your webcam. YOLOv8 detects objects in real time with bounding boxes, confidence scores, and batch processing.
@@ -12,7 +10,7 @@
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
@@ -29,7 +27,7 @@
 
 ---
 
-## 🔧 Stack
+## Stack
 
 | Layer | Tech |
 |-------|------|
@@ -41,7 +39,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Using Make (recommended)
 
@@ -83,7 +81,7 @@ docker run -p 8000:8000 cortex-vision
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 cortex-vision/
@@ -106,45 +104,45 @@ cortex-vision/
 
 ---
 
-## 🔑 API Endpoints
+## API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/upload` | Upload single image |
-| `POST` | `/upload/batch` | Upload multiple images (batch) |
-| `POST` | `/upload/video` | Upload video — returns per-frame detections with annotated frame images |
-| `POST` | `/detect/frame` | Receive a webcam frame and run detection (no disk I/O) |
-| `GET` | `/results/{task_id}` | Get batch image results |
-| `GET` | `/export/{task_id}` | Export batch results as CSV |
+| `POST` | `/v1/upload` | Upload single image |
+| `POST` | `/v1/upload/batch` | Upload multiple images (batch) |
+| `POST` | `/v1/upload/video` | Upload video — returns per-frame detections with annotated frame images |
+| `POST` | `/v1/detect/frame` | Receive a webcam frame and run detection (no disk I/O) |
+| `GET` | `/v1/results/{task_id}` | Get batch image results |
+| `GET` | `/v1/export/{task_id}` | Export batch results as CSV |
 | `GET` | `/health` | Health check |
 
 ---
 
-## 🧪 Quick API Tests
+## Quick API Tests
 
 ```bash
 # Health
 curl http://localhost:8000/health
 
 # Upload image
-curl -X POST -F "file=@image.jpg" http://localhost:8000/upload
+curl -X POST -H "X-API-Key: your-api-key" -F "file=@image.jpg" http://localhost:8000/v1/upload
 
 # Batch upload
-curl -X POST -F "files=@img1.jpg" -F "files=@img2.jpg" http://localhost:8000/upload/batch
+curl -X POST -H "X-API-Key: your-api-key" -F "files=@img1.jpg" -F "files=@img2.jpg" http://localhost:8000/v1/upload/batch
 
 # Video upload
-curl -X POST -F "file=@video.mp4" http://localhost:8000/upload/video
+curl -X POST -H "X-API-Key: your-api-key" -F "file=@video.mp4" http://localhost:8000/v1/upload/video
 
 # Webcam frame
-curl -X POST -F "file=@frame.jpg" http://localhost:8000/detect/frame
+curl -X POST -H "X-API-Key: your-api-key" -F "file=@frame.jpg" http://localhost:8000/v1/detect/frame
 
 # Export CSV
-curl http://localhost:8000/export/<task_id> -o results.csv
+curl http://localhost:8000/v1/export/<task_id> -o results.csv
 ```
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 - Python 3.12+
 - 4GB+ RAM recommended (YOLOv8 inference)
@@ -154,12 +152,26 @@ curl http://localhost:8000/export/<task_id> -o results.csv
 
 ---
 
-## 🏗️ Status
+## Status
 
 **Pre-Alpha** — Core detection pipeline is functional with all three input modes (images, video, webcam). UI is fully interactive with bounding boxes, filters, timeline, and history. Areas for improvement: authentication, rate limiting, persistent storage, and comprehensive test coverage.
 
 ---
 
-## 📄 License
+## Configuration
+
+The following environment variables can be used to configure the application:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `API_KEY` | _(required)_ | API key for authentication on protected endpoints |
+| `CORS_ORIGINS` | `http://localhost:8000` | Comma-separated list of allowed CORS origins |
+| `RATE_LIMIT` | `30` | Maximum requests per IP per rate window |
+| `RATE_WINDOW` | `60` | Rate limit window in seconds |
+| `UPLOAD_DIR` | `uploads` | Directory for uploaded files |
+| `OUTPUT_DIR` | `output` | Directory for output files |
+| `YOLO_MODEL` | `yolov8n.pt` | YOLOv8 model variant |
+
+## License
 
 MIT — See [LICENSE](LICENSE)

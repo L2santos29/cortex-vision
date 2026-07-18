@@ -1,7 +1,7 @@
-"""Utility functions for image preprocessing and helpers."""
+"""Utility functions for image and video processing."""
 
-from pathlib import Path
 import base64
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import cv2
@@ -10,6 +10,12 @@ from fastapi import HTTPException
 
 if TYPE_CHECKING:
     from .detector import Detector
+
+# ---- Named constants (STY-08) ----
+THUMBNAIL_MAX_SIZE = 320
+JPEG_QUALITY = 75
+HUE_RANGE = 120
+FALLBACK_FPS = 30
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -49,13 +55,16 @@ def extract_frames(video_path: str, fps_sample: int = 1) -> list[dict]:
     Returns:
         List of dicts with 'frame' (ndarray), 'timestamp' (float), 'frame_number' (int).
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError(f"Cannot open video: {video_path}")
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise RuntimeError(f"Cannot open video: {video_path}")
+    except Exception as exc:
+        raise RuntimeError(f"Failed to open video: {video_path}") from exc
 
     video_fps = cap.get(cv2.CAP_PROP_FPS)
     if video_fps <= 0:
-        video_fps = 30  # fallback
+        video_fps = FALLBACK_FPS
 
     frame_interval = max(1, int(round(video_fps / fps_sample)))
     frames = []
@@ -96,7 +105,7 @@ def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray
         conf = d["confidence"]
 
         # Smooth color: red (hue=0) → yellow (hue=60) → green (hue=120)
-        hue = int(conf * 120)
+        hue = int(conf * HUE_RANGE)
         color_rgb = cv2.cvtColor(
             np.uint8([[[hue, 255, 255]]]), cv2.COLOR_HSV2BGR
         )[0][0]
@@ -124,7 +133,7 @@ def draw_boxes_on_frame(frame: np.ndarray, detections: list[dict]) -> np.ndarray
     return frame
 
 
-def frame_to_base64(frame: np.ndarray, max_size: int = 320) -> str:
+def frame_to_base64(frame: np.ndarray, max_size: int = THUMBNAIL_MAX_SIZE) -> str:
     """Encode a frame as a base64 JPEG thumbnail.
 
     Args:
@@ -140,7 +149,7 @@ def frame_to_base64(frame: np.ndarray, max_size: int = 320) -> str:
         new_w, new_h = int(w * scale), int(h * scale)
         frame = cv2.resize(frame, (new_w, new_h))
 
-    _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
+    _, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
     return "data:image/jpeg;base64," + base64.b64encode(buf).decode("utf-8")
 
 
@@ -185,19 +194,4 @@ def process_video_frames(video_path: str, detector: "Detector", fps_sample: int 
     return results
 
 
-def preprocess(image_path: str, target_size: tuple[int, int] = (640, 640)) -> np.ndarray:
-    """Load and preprocess an image for inference.
 
-    Args:
-        image_path: Path to the image.
-        target_size: Desired output size (width, height).
-
-    Returns:
-        Preprocessed image as numpy array (BGR).
-    """
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Cannot read image: {image_path}")
-
-    img = cv2.resize(img, target_size)
-    return img

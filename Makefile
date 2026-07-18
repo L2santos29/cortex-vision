@@ -14,8 +14,8 @@ setup: .venv
 	@python3 -m venv .venv
 
 test: setup
-	@.venv/bin/pip install -q pytest
-	@.venv/bin/python -m pytest tests/ -v
+	@.venv/bin/pip install -q pytest pytest-cov
+	@.venv/bin/python -m pytest tests/ -v --cov=src --cov-report=term-missing
 
 clean:
 	@rm -rf .venv uploads output

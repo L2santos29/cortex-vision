@@ -1,1 +1,1 @@
-"""Cortex-Vision tests."""
+# Tests package — kept empty for pytest discovery.

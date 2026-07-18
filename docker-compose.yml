@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  cortex-vision:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=${API_KEY:-dev-change-me}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      - RATE_LIMIT=${RATE_LIMIT:-30}
+      - RATE_WINDOW=${RATE_WINDOW:-60}
+      - YOLO_MODEL=${YOLO_MODEL:-yolov8n.pt}
+    volumes:
+      - uploads:/app/uploads
+      - output:/app/output
+
+volumes:
+  uploads:
+  output:

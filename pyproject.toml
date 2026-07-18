@@ -29,6 +29,7 @@ dependencies = [
     "opencv-python>=4.10.0",
     "numpy>=1.26.0",
     "python-multipart>=0.0.12",
+        "pydantic-settings>=2.0.0",
 ]
 
 [project.urls]
@@ -41,3 +42,7 @@ cortex-vision = "src.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src", "src.*"]
+
+[tool.coverage.run]
+source = ["src"]
+relative_files = true
