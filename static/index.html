@@ -1012,8 +1012,9 @@
                 const card = document.getElementById(`card-${idx}`);
                 if (!card) return;
                 const body = card.querySelector('.body');
-                const imgPath = `uploads/${currentTaskId}_${file.name}`;
-                const dets = byImage[imgPath] || [];
+                const perFileEntry = currentPerFile ? currentPerFile[idx] : null;
+                const imgPath = perFileEntry ? perFileEntry.image : null;
+                const dets = imgPath ? (byImage[imgPath] || []) : [];
 
                 let listEl = body.querySelector('.detection-list');
                 let emptyEl = body.querySelector('.empty');
@@ -1411,8 +1412,10 @@
                 let oldEmpty = body.querySelector('.empty');
                 if (oldEmpty) oldEmpty.remove();
 
-                const imgPath = `uploads/${currentTaskId}_${file.name}`;
-                const dets = byImage[imgPath] || [];
+                // Use the perFile path from backend (already sanitized) instead of
+                // constructing from original filename (which may have special chars)
+                const perFileEntry = perFile[idx];
+                const dets = perFileEntry ? (byImage[perFileEntry.image] || []) : [];
 
                 if (dets.length === 0) {
                     const e = document.createElement('div');
