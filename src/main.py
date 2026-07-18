@@ -134,7 +134,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests: dict[str, list[float]] = defaultdict(list)
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in ("/health", "/"):
+        if request.url.path in ("/health", "/", "/v1/detect/frame"):
             return await call_next(request)
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()

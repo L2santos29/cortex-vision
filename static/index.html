@@ -1320,7 +1320,7 @@
                 }
                 const data = await resp.json();
                 currentTaskId = data.task_id;
-                showImgStatus(`✅ ${data.files_processed} images processed — ${data.total_objects} objects detected`, 'success');
+                showImgStatus(`⏳ Processing ${data.files_processed} image(s)... waiting for results`, 'info');
                 await loadResults(currentTaskId);
             } catch (err) {
                 showImgStatus(`❌ Error: ${err.message}`, 'error');
@@ -1329,14 +1329,25 @@
             }
         });
 
-        async function loadResults(taskId) {
+        async function loadResults(taskId, retries) {
+            retries = retries || 0;
+            if (retries > 120) { // max ~60s of polling
+                showImgStatus('⏱️ Results still processing — check later', 'info');
+                return;
+            }
             try {
                 const resp = await fetch(apiUrl(`/results/${taskId}`), { headers: apiHeaders() });
+                if (resp.status === 404 && retries < 120) {
+                    // Results not ready yet — poll again after delay
+                    await new Promise(r => setTimeout(r, 500));
+                    return loadResults(taskId, retries + 1);
+                }
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 currentResults = data;
                 currentRawDetections = data.detections || [];
                 currentPerFile = data.per_file || [];
+                showImgStatus(`✅ ${data.files_processed || '?'} images — ${data.total_objects || 0} objects detected`, 'success');
                 renderResults(data);
                 exportBtn.style.display = 'inline-block';
                 filterBar.style.display = 'flex';
