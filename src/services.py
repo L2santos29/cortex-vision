@@ -189,6 +189,15 @@ class DetectionService:
         safe_name = sanitize_filename(filename)
         return self.upload_dir / f"{uuid.uuid4().hex}_{safe_name}"
 
+    def get_batch_upload_path(self, prefix: str, filename: str) -> Path:
+        """Generate an upload path using a prefix (e.g. task_id) for batch files.
+
+        The prefix is visible in the filename so the frontend can correlate
+        results back to the original upload without knowing the random UUID.
+        """
+        safe_name = sanitize_filename(filename)
+        return self.upload_dir / f"{prefix}_{safe_name}"
+
     def save_upload(self, contents: bytes, path: Path) -> None:
         """Save uploaded file contents to disk."""
         path.write_bytes(contents)

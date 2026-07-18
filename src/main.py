@@ -311,7 +311,7 @@ async def upload_batch(
         contents = await file.read()
         service.validate_image(file.filename or "unknown", len(contents))
 
-        image_path = service.get_upload_path(file.filename or "unknown")
+        image_path = service.get_batch_upload_path(task_id, file.filename or "unknown")
 
         try:
             service.save_upload(contents, image_path)
