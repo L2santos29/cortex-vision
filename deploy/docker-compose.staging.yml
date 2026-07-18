@@ -1,0 +1,89 @@
+# =============================================================================
+# Cortex-Vision — Staging Environment
+# =============================================================================
+# Uso: docker compose -f docker-compose.staging.yml up -d
+#
+# Diferencias con dev:
+#   - TLS automático con Caddy (Let's Encrypt)
+#   - Límites de recursos (memoria, CPU)
+#   - Políticas de restart
+#   - Logging configurado (tamaño máximo, rotación)
+#   - Red aislada
+#   - Sin mounts de desarrollo (copia estática del código)
+# =============================================================================
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      cortex-vision:
+        condition: service_healthy
+    networks:
+      - cortex-net
+
+  cortex-vision:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cortex-vision:staging
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      # Requeridas — crásh si no están definidas
+      - API_KEY=${API_KEY:?API_KEY is required}
+      # Opcionales con defaults seguros para staging
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://staging.example.com}
+      - RATE_LIMIT=${RATE_LIMIT:-60}
+      - RATE_WINDOW=${RATE_WINDOW:-60}
+      - YOLO_MODEL=${YOLO_MODEL:-yolov8n.pt}
+      - UPLOAD_DIR=/app/uploads
+      - OUTPUT_DIR=/app/output
+    volumes:
+      - uploads:/app/uploads
+      - output:/app/output
+    # Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+        reservations:
+          memory: 512M
+          cpus: "0.5"
+    # Health check para orquestación
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - cortex-net
+
+networks:
+  cortex-net:
+    driver: bridge
+
+volumes:
+  uploads:
+    driver: local
+  output:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

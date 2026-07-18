@@ -46,3 +46,8 @@ include = ["src", "src.*"]
 [tool.coverage.run]
 source = ["src"]
 relative_files = true
+
+[tool.mutmut]
+paths_to_mutate = ["src"]
+backup = false
+runner = "python -m pytest tests/ -x --tb=short"

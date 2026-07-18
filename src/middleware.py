@@ -92,9 +92,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-IP rate limiting."""
 
+    _instances: list["RateLimitMiddleware"] = []
+
     def __init__(self, app: ASGIApp):
         super().__init__(app)
         self.requests: dict[str, list[float]] = defaultdict(list)
+        self._instances.append(self)
 
     async def dispatch(self, request: Request, call_next: NextCall):
         if request.url.path in ("/health", "/", "/v1/detect/frame"):
@@ -112,6 +115,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
         self.requests[client_ip].append(now)
         return await call_next(request)
+
+    @classmethod
+    def reset_all(cls) -> None:
+        """Reset rate limit state for all instances (used in tests)."""
+        for inst in cls._instances:
+            inst.requests.clear()
+        cls._instances.clear()
 
 
 # ---- Middleware: Request ID (MON-01/MON-02/MON-05) ----

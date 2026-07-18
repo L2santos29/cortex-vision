@@ -188,35 +188,52 @@ The application reads environment variables from `.env` automatically via `pydan
 
 ## Staging Environment
 
-For a staging deployment (e.g., on a VM or cloud instance):
+Usa la configuración específica de staging con TLS automático, límites de recursos y health checks:
 
 ```bash
-# Clone and set up
-git clone https://github.com/L2santos29/cortex-vision.git
-cd cortex-vision
+# Requisitos: API_KEY definida
+export API_KEY=$(openssl rand -hex 32)
 
-# Create .env with staging-specific values
-cp .env.example .env
-# Edit .env: set API_KEY, tighten CORS_ORIGINS, etc.
+# Iniciar entorno staging (Caddy + App)
+docker compose -f deploy/docker-compose.staging.yml up -d
 
-# Build and run via Docker
-docker build -t cortex-vision:staging .
-docker run -d \
-  --name cortex-vision-staging \
-  --restart unless-stopped \
-  -p 8000:8000 \
-  --env-file .env \
-  cortex-vision:staging
+# Verificar estado
+curl -f http://localhost:8000/health
+
+# Ver logs
+docker compose -f deploy/docker-compose.staging.yml logs -f
 ```
+
+El compose de staging incluye:
+- **Caddy** como reverse proxy con TLS automático (Let's Encrypt)
+- **Límites de memoria** (2GB max, 512MB reservados)
+- **Límites de CPU** (2 cores max, 0.5 reservados)
+- **Política de restart** (`unless-stopped`)
+- **Health check** cada 30s para orquestación
+- **Logging** con rotación (10MB por archivo, max 3 archivos)
+- **Red aislada** (bridge)
+
+### Despliegue automatizado (CI/CD)
+
+El workflow `.github/workflows/deploy-staging.yml` se ejecuta automáticamente
+en cada push a `main`:
+1. Ejecuta tests con cobertura (mínimo 80%)
+2. Construye la imagen Docker
+3. Guarda el artefacto para deploy
+4. (Opcional) Despliega vía SSH al servidor de staging
+
+Para activar el deploy remoto, configura los secrets en GitHub:
+- `STAGING_HOST`
+- `STAGING_USER`
+- `STAGING_SSH_KEY`
 
 ### Staging Checklist
 
-- [ ] Generate a strong `API_KEY` (e.g., `openssl rand -hex 32`)
-- [ ] Restrict `CORS_ORIGINS` to the staging domain
-- [ ] Use a TLS-terminating reverse proxy (nginx, Caddy, Traefik)
-- [ ] Set `UPLOAD_DIR` / `OUTPUT_DIR` to persistent volumes
-- [ ] Configure logging to a file or external aggregator
-- [ ] Monitor `/health` and `/metrics` endpoints
+- [ ] Generar `API_KEY` fuerte: `openssl rand -hex 32`
+- [ ] Configurar `CORS_ORIGINS` con el dominio de staging
+- [ ] Editar `deploy/Caddyfile` con el dominio real
+- [ ] Verificar que el health check responde
+- [ ] Monitorear `/health` y `/metrics`
 
 ---
 

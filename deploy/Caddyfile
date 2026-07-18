@@ -1,0 +1,31 @@
+# Caddyfile para Cortex-Vision Staging
+# Reemplaza staging.example.com con tu dominio real
+# TLS automático vía Let's Encrypt
+
+staging.example.com {
+    # Proxy inverso al contenedor de la app
+    reverse_proxy cortex-vision:8000
+
+    # Security headers (para cubrir si el proxy es externo)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # Logging de acceso
+    log {
+        output file /data/access.log
+        format json
+    }
+
+    # Rate limiting a nivel de proxy
+    rate_limit {
+        zone dynamic {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+}

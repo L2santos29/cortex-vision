@@ -2,20 +2,18 @@
 
 import asyncio
 import csv
-import hashlib
 import io
 import logging
-import random
 import re
 import time
 import uuid
-from collections import OrderedDict
-from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import numpy as np
 
+from .cache import DetectionCache
+from .resilience import CircuitBreaker, retry_with_backoff
 from .utils import (
     ALLOWED_VIDEO_EXTENSIONS,
     MAX_VIDEO_SIZE,
@@ -34,7 +32,6 @@ logger = logging.getLogger(__name__)
 # ---- Constants ----
 MAX_FILENAME_LENGTH = 128
 MAX_BATCH_RESULTS = 1000
-CACHE_HASH_SAMPLE_BYTES = 4096  # First 4 KiB of array content for cache key
 
 
 def sanitize_filename(filename: str) -> str:
@@ -42,131 +39,6 @@ def sanitize_filename(filename: str) -> str:
     safe = Path(filename).name
     safe = re.sub(r"[^\w.\- ]", "_", safe)
     return safe[:MAX_FILENAME_LENGTH]
-
-
-async def retry_with_backoff(
-    func: Callable[..., Awaitable[Any]],
-    *args: Any,
-    max_retries: int = 3,
-    base_delay: float = 0.5,
-    max_delay: float = 10.0,
-    **kwargs: Any,
-) -> Any:
-    """Retry an async function with exponential backoff and jitter.
-
-    Args:
-        func: Async callable to retry.
-        max_retries: Maximum number of retry attempts.
-        base_delay: Initial delay in seconds before first retry.
-        max_delay: Maximum delay in seconds between retries.
-    """
-    last_exc = None
-    for attempt in range(max_retries + 1):
-        try:
-            return await func(*args, **kwargs)
-        except (OSError, ConnectionError, TimeoutError) as exc:
-            last_exc = exc
-            if attempt < max_retries:
-                delay = min(base_delay * (2 ** attempt), max_delay)
-                # Jitter prevents thundering herd when multiple clients retry simultaneously
-                jitter = delay * 0.25 * (2 * random.random() - 1)
-                await asyncio.sleep(delay + jitter)
-            else:
-                raise last_exc
-
-
-class CircuitBreaker:
-    """Simple circuit breaker to prevent cascading failures.
-
-    Tracks consecutive failures and opens the circuit when a threshold
-    is reached, allowing the system to recover before retrying.
-    """
-
-    OPEN = "open"
-    HALF_OPEN = "half-open"
-    CLOSED = "closed"
-
-    def __init__(self, failure_threshold: int = 5, recovery_timeout: float = 30.0):
-        self.failure_threshold = failure_threshold
-        self.recovery_timeout = recovery_timeout
-        self.failure_count = 0
-        self.state = self.CLOSED
-        self.last_failure_time = 0.0
-
-    def call(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        """Execute func if circuit is closed, raise CircuitBreakerError if open."""
-        if self.state == self.OPEN:
-            if time.time() - self.last_failure_time >= self.recovery_timeout:
-                self.state = self.HALF_OPEN
-            else:
-                raise RuntimeError("Circuit breaker is OPEN")
-
-        try:
-            result = func(*args, **kwargs)
-            if self.state == self.HALF_OPEN:
-                self.state = self.CLOSED
-                self.failure_count = 0
-            return result
-        except Exception as exc:
-            self.failure_count += 1
-            self.last_failure_time = time.time()
-            if self.failure_count >= self.failure_threshold:
-                self.state = self.OPEN
-            raise exc
-
-    async def async_call(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
-        """Async version of call()."""
-        if self.state == self.OPEN:
-            if time.time() - self.last_failure_time >= self.recovery_timeout:
-                self.state = self.HALF_OPEN
-            else:
-                raise RuntimeError("Circuit breaker is OPEN")
-
-        try:
-            result = await func(*args, **kwargs)
-            if self.state == self.HALF_OPEN:
-                self.state = self.CLOSED
-                self.failure_count = 0
-            return result
-        except Exception as exc:
-            self.failure_count += 1
-            self.last_failure_time = time.time()
-            if self.failure_count >= self.failure_threshold:
-                self.state = self.OPEN
-            raise exc
-
-
-class DetectionCache:
-    """Simple LRU cache for detection results to avoid redundant inference (PER-04)."""
-
-    def __init__(self, max_size: int = 100):
-        self.max_size = max_size
-        self._cache: OrderedDict = OrderedDict()
-
-    def _make_key(self, image_path: str) -> str:
-        return f"path:{image_path}"
-
-    def _make_array_key(self, img: np.ndarray) -> str:
-        # Sample first 4 KiB of content — avoids hashing the entire array
-        return f"arr:{hashlib.md5(img.tobytes()[:CACHE_HASH_SAMPLE_BYTES]).hexdigest()}"
-
-    def get(self, key: str) -> list | None:
-        """Get cached result and mark as recently used."""
-        if key in self._cache:
-            self._cache.move_to_end(key)
-            return self._cache[key]
-        return None
-
-    def put(self, key: str, value: list) -> None:
-        """Store result in cache, evicting oldest if at capacity."""
-        self._cache[key] = value
-        self._cache.move_to_end(key)
-        if len(self._cache) > self.max_size:
-            self._cache.popitem(last=False)
-
-    def clear(self) -> None:
-        """Clear all cached results."""
-        self._cache.clear()
 
 
 class DetectionService:

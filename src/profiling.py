@@ -42,8 +42,10 @@ class timed_context:
 
     def __exit__(self, *args):
         self.elapsed = time.perf_counter() - self._start
-        log_fn = logger.warning if (self.warn_threshold and self.elapsed > self.warn_threshold) else logger.log
-        log_fn(self.level, "Profile [%s]: %.4fs", self.name, self.elapsed)
+        if self.warn_threshold and self.elapsed > self.warn_threshold:
+            logger.warning("Profile [%s]: %.4fs", self.name, self.elapsed)
+        else:
+            logger.log(self.level, "Profile [%s]: %.4fs", self.name, self.elapsed)
 
 
 def timed(name: str | None = None, level: int = logging.DEBUG, warn_threshold: float | None = None):
@@ -67,7 +69,10 @@ def timed(name: str | None = None, level: int = logging.DEBUG, warn_threshold: f
             result = func(*args, **kwargs)
             elapsed = time.perf_counter() - start
             log_fn = logger.warning if (warn_threshold and elapsed > warn_threshold) else logger.log
-            log_fn(level, "Profile [%s]: %.4fs", label, elapsed)
+            if log_fn is logger.warning:
+                log_fn("Profile [%s]: %.4fs", label, elapsed)
+            else:
+                log_fn(level, "Profile [%s]: %.4fs", label, elapsed)
             return result
 
         @functools.wraps(func)
@@ -77,7 +82,10 @@ def timed(name: str | None = None, level: int = logging.DEBUG, warn_threshold: f
             result = await func(*args, **kwargs)
             elapsed = time.perf_counter() - start
             log_fn = logger.warning if (warn_threshold and elapsed > warn_threshold) else logger.log
-            log_fn(level, "Profile [%s]: %.4fs", label, elapsed)
+            if log_fn is logger.warning:
+                log_fn("Profile [%s]: %.4fs", label, elapsed)
+            else:
+                log_fn(level, "Profile [%s]: %.4fs", label, elapsed)
             return result
 
         if asyncio.iscoroutinefunction(func):

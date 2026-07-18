@@ -29,6 +29,10 @@ from .pipeline import BatchPipeline
 from .services import DetectionService
 from .utils import ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE
 
+# ---- Named constants (STY-08) ----
+COOKIE_MAX_AGE = 86400  # 24 hours in seconds
+MAX_FRAME_SIZE = 5 * 1024 * 1024  # 5 MB
+
 # ---------------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------------
@@ -100,7 +104,7 @@ async def index() -> Response:
             value=settings.api_key,
             httponly=True,
             samesite="lax",
-            max_age=86400,
+            max_age=COOKIE_MAX_AGE,
         )
         return response
     return HTMLResponse(
@@ -227,7 +231,6 @@ async def detect_frame(
     if not contents:
         return JSONResponse({"error": "Empty frame"}, status_code=400)
 
-    MAX_FRAME_SIZE = 5 * 1024 * 1024
     if len(contents) > MAX_FRAME_SIZE:
         return JSONResponse({"error": "Frame too large (>5MB)"}, status_code=400)
 
