@@ -3,6 +3,7 @@
 import os
 import uuid
 from pathlib import Path
+import tempfile
 
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
@@ -10,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .detector import Detector
 from .pipeline import BatchPipeline
+from .utils import ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE, process_video_frames
 
 app = FastAPI(title="Cortex-Vision", version="0.1.0")
 
@@ -83,6 +85,48 @@ async def upload_batch(files: list[UploadFile]):
         "files_processed": len(files),
         "total_objects": len(aggregated),
     })
+
+
+@app.post("/upload/video")
+async def upload_video(file: UploadFile = File(...)):
+    """Upload a video and get per-frame detection results.
+
+    Extracts frames at 1 FPS and runs YOLO detection on each.
+    """
+    ext = Path(file.filename).suffix.lower()
+    if ext not in ALLOWED_VIDEO_EXTENSIONS:
+        return JSONResponse(
+            {"error": f"Unsupported video format. Allowed: {', '.join(sorted(ALLOWED_VIDEO_EXTENSIONS))}"},
+            status_code=400,
+        )
+
+    video_id = uuid.uuid4().hex
+    video_path = UPLOAD_DIR / f"{video_id}_{file.filename}"
+    contents = await file.read()
+
+    if len(contents) > MAX_VIDEO_SIZE:
+        return JSONResponse({"error": "Video too large (>500MB)"}, status_code=400)
+
+    video_path.write_bytes(contents)
+
+    try:
+        frames_data = process_video_frames(str(video_path), detector, fps_sample=1)
+        duration = frames_data[-1]["timestamp"] if frames_data else 0
+
+        return JSONResponse({
+            "filename": file.filename,
+            "video_id": video_id,
+            "duration_seconds": duration,
+            "total_frames_processed": len(frames_data),
+            "total_objects": sum(f["object_count"] for f in frames_data),
+            "frames": frames_data,
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    finally:
+        # Clean up video file after processing
+        if video_path.exists():
+            video_path.unlink()
 
 
 @app.get("/results/{task_id}")

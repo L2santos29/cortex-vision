@@ -95,15 +95,15 @@
         input[type="file"] { display: none; }
 
         /* Status bar */
-        #status {
+        #status, #videoStatus {
             margin-top: 1rem;
             padding: 0.75rem 1rem;
             border-radius: 6px;
             display: none;
         }
-        #status.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
-        #status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
-        #status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+        #status.info, #videoStatus.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
+        #status.success, #videoStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
+        #status.error, #videoStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
 
         /* Results grid */
         .results-grid {
@@ -216,6 +216,45 @@
             color: var(--accent);
         }
 
+        /* Video frame styles */
+        .frame-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .frame-card .frame-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0.75rem;
+            background: rgba(48,54,61,0.3);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .frame-card .frame-body {
+            padding: 0.5rem 0.75rem;
+        }
+        .frame-card .frame-body .empty {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-style: italic;
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+        .frame-card .frame-body .detection-list {
+            list-style: none;
+        }
+        .frame-card .frame-body .detection-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(48,54,61,0.3);
+            font-size: 0.8rem;
+        }
+        .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
+
         /* Responsive */
         @media (max-width: 700px) {
             .results-grid {
@@ -232,9 +271,9 @@
         <span class="badge">Pre-Alpha</span>
     </header>
     <main>
-        <!-- Upload card -->
+        <!-- Upload Images card -->
         <div class="card">
-            <h2</h1>>📤 Upload Images</h2>
+            <h2>📤 Upload Images</h2>
             <div class="upload-area" id="dropZone">
                 <div class="icon">📁</div>
                 <p>Drop images here</p>
@@ -254,7 +293,29 @@
             <div id="status"></div>
         </div>
 
-        <!-- Results card -->
+        <!-- Upload Video card -->
+        <div class="card">
+            <h2>🎬 Upload Video</h2>
+            <div class="upload-area" id="videoDropZone">
+                <div class="icon">🎥</div>
+                <p>Drop a video here or click to select</p>
+                <p class="sub">MP4, AVI, MOV, MKV, WebM — up to 500MB (sampled at 1 FPS)</p>
+                <div class="upload-methods">
+                    <button class="btn" id="selectVideoBtn">🎬 Select Video</button>
+                </div>
+            </div>
+            <input type="file" id="videoInput" accept=".mp4,.avi,.mov,.mkv,.webm">
+            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary" id="processVideoBtn" disabled>🎬 Process Video</button>
+            </div>
+            <div id="videoPreview" style="margin-top: 1rem; display: none;">
+                <video id="videoEl" controls style="max-width: 100%; max-height: 400px; border-radius: 8px; background: #000;"></video>
+                <p id="videoInfo" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;"></p>
+            </div>
+            <div id="videoStatus"></div>
+        </div>
+
+        <!-- Image Results card -->
         <div class="card" id="resultsCard" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 <h2>📊 Results</h2>
@@ -263,9 +324,20 @@
             <div class="stats-bar" id="statsBar" style="display: none;"></div>
             <div class="results-grid" id="resultsGrid"></div>
         </div>
+
+        <!-- Video Results card -->
+        <div class="card" id="videoResultsCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                <h2>🎬 Video Results</h2>
+                <span id="videoSummary" style="font-size: 0.9rem; color: var(--text-muted);"></span>
+            </div>
+            <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
+            <div class="results-grid" id="videoResultsGrid"></div>
+        </div>
     </main>
 
     <script>
+        // ---- Image elements ----
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const folderInput = document.getElementById('folderInput');
@@ -283,6 +355,22 @@
         let selectedFiles = [];
         let currentTaskId = null;
         let currentResults = null;
+
+        // ---- Video elements ----
+        const videoDropZone = document.getElementById('videoDropZone');
+        const videoInput = document.getElementById('videoInput');
+        const selectVideoBtn = document.getElementById('selectVideoBtn');
+        const processVideoBtn = document.getElementById('processVideoBtn');
+        const videoPreview = document.getElementById('videoPreview');
+        const videoEl = document.getElementById('videoEl');
+        const videoInfo = document.getElementById('videoInfo');
+        const videoStatus = document.getElementById('videoStatus');
+        const videoResultsCard = document.getElementById('videoResultsCard');
+        const videoResultsGrid = document.getElementById('videoResultsGrid');
+        const videoStatsBar = document.getElementById('videoStatsBar');
+        const videoSummary = document.getElementById('videoSummary');
+
+        let selectedVideo = null;
 
         // ---- File selection ----
         selectFilesBtn.addEventListener('click', () => fileInput.click());
@@ -496,6 +584,145 @@
                     }
                 }
             });
+        }
+
+        // ---- Video file selection ----
+        selectVideoBtn.addEventListener('click', () => videoInput.click());
+        videoInput.addEventListener('change', () => handleVideoSelected(videoInput.files[0]));
+
+        videoDropZone.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+            videoInput.click();
+        });
+        videoDropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            videoDropZone.classList.add('dragover');
+        });
+        videoDropZone.addEventListener('dragleave', () => {
+            videoDropZone.classList.remove('dragover');
+        });
+        videoDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            videoDropZone.classList.remove('dragover');
+            const videoFile = Array.from(e.dataTransfer.files).find(f => {
+                const ext = '.' + f.name.split('.').pop().toLowerCase();
+                return ['.mp4', '.avi', '.mov', '.mkv', '.webm'].includes(ext);
+            });
+            if (videoFile) handleVideoSelected(videoFile);
+        });
+
+        function handleVideoSelected(file) {
+            if (!file) return;
+            selectedVideo = file;
+
+            // Show video preview
+            videoPreview.style.display = 'block';
+            videoEl.src = URL.createObjectURL(file);
+            videoInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+            processVideoBtn.disabled = false;
+            showVideoStatus('🎬 Video selected. Click "Process Video" to analyze.', 'info');
+        }
+
+        // ---- Process Video ----
+        processVideoBtn.addEventListener('click', async () => {
+            if (!selectedVideo) return;
+
+            processVideoBtn.disabled = true;
+            showVideoStatus(`⏳ Processing video: ${selectedVideo.name}...`, 'info');
+
+            const formData = new FormData();
+            formData.append('file', selectedVideo);
+
+            try {
+                const resp = await fetch('/upload/video', { method: 'POST', body: formData });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.error || `HTTP ${resp.status}`);
+                }
+                const data = await resp.json();
+                showVideoStatus(
+                    `✅ ${data.filename} — ${data.total_frames_processed} frames, ${data.total_objects} objects detected across ${data.duration_seconds}s`,
+                    'success'
+                );
+                renderVideoResults(data);
+            } catch (err) {
+                showVideoStatus(`❌ Error: ${err.message}`, 'error');
+                processVideoBtn.disabled = false;
+            }
+        });
+
+        function renderVideoResults(data) {
+            const frames = data.frames || [];
+
+            videoResultsCard.style.display = 'block';
+
+            // Stats
+            const totalFrames = frames.length;
+            const totalObjects = data.total_objects;
+            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(d => d.class)))];
+            videoStatsBar.style.display = 'flex';
+            videoStatsBar.innerHTML = `
+                <span class="stat">🎞️ Frames: <span class="num">${totalFrames}</span></span>
+                <span class="stat">⏱️ Duration: <span class="num">${data.duration_seconds}s</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
+                <span class="stat">🏷️ Classes: <span class="num">${allClasses.length}</span></span>
+            `;
+            videoSummary.textContent = `Frames with detections: ${frames.filter(f => f.object_count > 0).length} / ${totalFrames}`;
+
+            // Build frame cards
+            const fragment = document.createDocumentFragment();
+            frames.forEach((frame, idx) => {
+                const card = document.createElement('div');
+                card.className = 'frame-card';
+
+                const header = document.createElement('div');
+                header.className = 'frame-header';
+                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>Frame ${frame.frame_number}</span>`;
+
+                const body = document.createElement('div');
+                body.className = 'frame-body';
+
+                if (frame.object_count === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.textContent = '🔍 No objects detected';
+                    body.appendChild(empty);
+                } else {
+                    const list = document.createElement('ul');
+                    list.className = 'detection-list';
+                    frame.detections.forEach(d => {
+                        const item = document.createElement('li');
+                        item.className = 'detection-item';
+                        const label = document.createElement('span');
+                        label.className = 'detection-class';
+                        label.textContent = d.class;
+                        const conf = document.createElement('span');
+                        conf.className = 'detection-conf';
+                        conf.textContent = `${(d.confidence * 100).toFixed(1)}%`;
+                        item.appendChild(label);
+                        item.appendChild(conf);
+                        list.appendChild(item);
+                    });
+                    body.appendChild(list);
+                }
+
+                card.appendChild(header);
+                card.appendChild(body);
+                fragment.appendChild(card);
+            });
+
+            videoResultsGrid.innerHTML = '';
+            videoResultsGrid.appendChild(fragment);
+            processVideoBtn.disabled = false;
+        }
+
+
+
+        // ---- Video helpers ----
+        function showVideoStatus(msg, type) {
+            videoStatus.textContent = msg;
+            videoStatus.className = type;
+            videoStatus.style.display = 'block';
         }
 
         // ---- Export ----
