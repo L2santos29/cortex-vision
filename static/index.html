@@ -51,6 +51,26 @@
         }
         .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
 
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-in {
+            animation: fadeIn 0.35s ease-out forwards;
+        }
+        .animate-up {
+            animation: fadeInUp 0.25s ease-out forwards;
+        }
+
         /* Upload area */
         .upload-area {
             border: 2px dashed var(--border);
@@ -105,6 +125,54 @@
         #status.success, #videoStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
         #status.error, #videoStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
 
+        /* Confidence filter */
+        .filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .filter-bar label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .filter-bar input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 160px;
+            height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            outline: none;
+        }
+        .filter-bar input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--card);
+        }
+        .filter-bar input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--card);
+        }
+        .filter-value {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            min-width: 2.5rem;
+            text-align: right;
+        }
+
         /* Results grid */
         .results-grid {
             display: grid;
@@ -117,23 +185,16 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
-        .result-card:hover { border-color: var(--accent); }
-        .result-card .preview {
+        .result-card:hover { border-color: var(--accent); box-shadow: 0 0 15px rgba(88,166,255,0.08); }
+        .result-card .preview-canvas {
             width: 100%;
             height: 200px;
-            object-fit: cover;
             display: block;
             background: #000;
             border-bottom: 1px solid var(--border);
-        }
-        .result-card .preview.placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            font-size: 0.9rem;
+            object-fit: cover;
         }
         .result-card .body {
             padding: 0.75rem 1rem;
@@ -159,6 +220,9 @@
         .detection-class {
             color: var(--accent);
         }
+        .detection-class .highlight {
+            color: var(--green);
+        }
         .detection-conf {
             background: rgba(88,166,255,0.15);
             color: var(--accent);
@@ -167,6 +231,9 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
+        .detection-conf.high { background: rgba(63,185,80,0.2); color: var(--green); }
+        .detection-conf.medium { background: rgba(210,153,29,0.2); color: var(--orange); }
+        .detection-conf.low { background: rgba(248,81,73,0.15); color: var(--red); }
         .result-card .count-badge {
             display: inline-block;
             background: var(--orange);
@@ -255,6 +322,43 @@
         }
         .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
 
+        /* Video timeline */
+        .video-timeline {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 0.75rem 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 0.75rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .video-timeline .tl-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            flex-shrink: 0;
+            border: 2px solid transparent;
+        }
+        .video-timeline .tl-dot:hover {
+            transform: scale(1.4);
+            box-shadow: 0 0 8px rgba(88,166,255,0.4);
+            border-color: var(--accent);
+        }
+        .video-timeline .tl-dot.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px rgba(88,166,255,0.3);
+        }
+        .video-timeline .tl-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
         /* Webcam section */
         .webcam-detection-item {
             display: flex;
@@ -281,6 +385,17 @@
         #webcamStatus.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
         #webcamStatus.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
         #webcamStatus.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.85rem; }
+
+        .webcam-live-badge {
+            display: inline-block;
+            background: var(--green);
+            color: #fff;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            animation: pulse 1.5s ease-in-out infinite;
+            margin-left: 0.5rem;
+        }
 
         /* Responsive */
         @media (max-width: 700px) {
@@ -372,6 +487,12 @@
                 <h2>📊 Results</h2>
                 <button class="btn" id="exportBtn" style="display: none;">📥 Export CSV</button>
             </div>
+            <!-- Confidence filter -->
+            <div class="filter-bar" id="filterBar" style="display: none;">
+                <label>🎯 Min. confidence</label>
+                <input type="range" id="confSlider" min="0" max="100" value="0">
+                <span class="filter-value" id="confValue">0%</span>
+            </div>
             <div class="stats-bar" id="statsBar" style="display: none;"></div>
             <div class="results-grid" id="resultsGrid"></div>
         </div>
@@ -382,6 +503,7 @@
                 <h2>🎬 Video Results</h2>
                 <span id="videoSummary" style="font-size: 0.9rem; color: var(--text-muted);"></span>
             </div>
+            <div class="video-timeline" id="videoTimeline" style="display: none;"></div>
             <div class="stats-bar" id="videoStatsBar" style="display: none;"></div>
             <div class="results-grid" id="videoResultsGrid"></div>
         </div>
@@ -402,10 +524,17 @@
         const resultsGrid = document.getElementById('resultsGrid');
         const statsBar = document.getElementById('statsBar');
         const exportBtn = document.getElementById('exportBtn');
+        const confSlider = document.getElementById('confSlider');
+        const confValue = document.getElementById('confValue');
+        const filterBar = document.getElementById('filterBar');
 
         let selectedFiles = [];
         let currentTaskId = null;
         let currentResults = null;
+        let currentRawDetections = null;    // unfiltered detections
+        let currentPerFile = null;          // unfiltered per_file
+        let currentConfThreshold = 0;
+        let imagePreviews = {};             // idx -> {img: Image, canvas: HTMLCanvasElement}
 
         // ---- Video elements ----
         const videoDropZone = document.getElementById('videoDropZone');
@@ -420,8 +549,106 @@
         const videoResultsGrid = document.getElementById('videoResultsGrid');
         const videoStatsBar = document.getElementById('videoStatsBar');
         const videoSummary = document.getElementById('videoSummary');
+        const videoTimeline = document.getElementById('videoTimeline');
 
         let selectedVideo = null;
+
+        // ---- Confidence filter ----
+        confSlider.addEventListener('input', () => {
+            const val = parseInt(confSlider.value);
+            confValue.textContent = val + '%';
+            currentConfThreshold = val / 100;
+            if (currentRawDetections) {
+                applyConfidenceFilter();
+            }
+        });
+
+        function applyConfidenceFilter() {
+            const threshold = currentConfThreshold;
+            const filteredDetections = currentRawDetections.filter(d => d.confidence >= threshold);
+
+            // Re-stats
+            const totalImages = currentPerFile ? currentPerFile.length : 0;
+            const totalObjects = filteredDetections.length;
+            const classes = [...new Set(filteredDetections.map(d => d.class))];
+            statsBar.style.display = 'flex';
+            statsBar.innerHTML = `
+                <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
+                <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
+                <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
+            `;
+
+            // Group by image
+            const byImage = {};
+            for (const d of filteredDetections) {
+                const imgPath = d.image;
+                if (!byImage[imgPath]) byImage[imgPath] = [];
+                byImage[imgPath].push(d);
+            }
+
+            // Update each card
+            selectedFiles.forEach((file, idx) => {
+                const card = document.getElementById(`card-${idx}`);
+                if (!card) return;
+
+                const body = card.querySelector('.body');
+                const imgPath = `uploads/${currentTaskId}_${file.name}`;
+                const fileDets = byImage[imgPath] || [];
+
+                // Update detection list
+                let listEl = body.querySelector('.detection-list');
+                let emptyEl = body.querySelector('.empty');
+                if (listEl) listEl.remove();
+                if (emptyEl) emptyEl.remove();
+
+                if (fileDets.length === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty';
+                    empty.textContent = '🔍 No objects detected (filtered)';
+                    body.appendChild(empty);
+                } else {
+                    const list = document.createElement('ul');
+                    list.className = 'detection-list';
+                    fileDets.forEach(d => {
+                        const item = document.createElement('li');
+                        item.className = 'detection-item animate-up';
+                        const label = document.createElement('span');
+                        label.className = 'detection-class';
+                        label.textContent = d.class;
+                        const conf = document.createElement('span');
+                        const pct = d.confidence;
+                        let level = 'low';
+                        if (pct >= 0.7) level = 'high';
+                        else if (pct >= 0.4) level = 'medium';
+                        conf.className = `detection-conf ${level}`;
+                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
+                        item.appendChild(label);
+                        item.appendChild(conf);
+                        list.appendChild(item);
+                    });
+                    body.appendChild(list);
+                }
+
+                // Update count badge
+                const fname = body.querySelector('.filename');
+                if (fname) {
+                    const existing = fname.querySelector('.count-badge');
+                    if (existing) existing.remove();
+                    if (fileDets.length > 0) {
+                        const badge = document.createElement('span');
+                        badge.className = 'count-badge';
+                        badge.textContent = `${fileDets.length}`;
+                        fname.appendChild(badge);
+                    }
+                }
+
+                // Redraw canvas with filtered boxes
+                const previewInfo = imagePreviews[idx];
+                if (previewInfo && previewInfo.img) {
+                    drawBoxes(card.querySelector('.preview-canvas'), previewInfo.img, fileDets);
+                }
+            });
+        }
 
         // ---- File selection ----
         selectFilesBtn.addEventListener('click', () => fileInput.click());
@@ -451,7 +678,6 @@
         function handleSelectedFiles(files) {
             if (!files || files.length === 0) return;
 
-            // Filter images
             const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
             selectedFiles = Array.from(files).filter(f => {
                 const ext = '.' + f.name.split('.').pop().toLowerCase();
@@ -468,22 +694,24 @@
             showPreviews(selectedFiles);
         }
 
-        // ---- Previews ----
+        // ---- Previews (canvas-based, with bounding box support) ----
         function showPreviews(files) {
             resultsCard.style.display = 'block';
             statsBar.style.display = 'none';
             exportBtn.style.display = 'none';
+            filterBar.style.display = 'none';
 
+            imagePreviews = {};
             const fragment = document.createDocumentFragment();
+
             files.forEach((file, idx) => {
                 const card = document.createElement('div');
-                card.className = 'result-card';
+                card.className = 'result-card animate-in';
                 card.id = `card-${idx}`;
 
-                const img = document.createElement('img');
-                img.className = 'preview';
-                img.src = URL.createObjectURL(file);
-                img.alt = file.name;
+                const canvas = document.createElement('canvas');
+                canvas.className = 'preview-canvas';
+                canvas.id = `canvas-${idx}`;
 
                 const body = document.createElement('div');
                 body.className = 'body';
@@ -498,8 +726,17 @@
 
                 body.appendChild(fname);
                 body.appendChild(loading);
-                card.appendChild(img);
+                card.appendChild(canvas);
                 card.appendChild(body);
+
+                // Load the image onto the canvas
+                const img = new Image();
+                img.onload = () => {
+                    imagePreviews[idx] = { img, canvas };
+                    drawImageOnCanvas(canvas, img);
+                };
+                img.src = URL.createObjectURL(file);
+
                 fragment.appendChild(card);
             });
 
@@ -507,11 +744,65 @@
             resultsGrid.appendChild(fragment);
         }
 
+        function drawImageOnCanvas(canvas, img) {
+            const maxH = 200;
+            const scale = Math.min(1, maxH / img.naturalHeight);
+            const w = Math.round(img.naturalWidth * scale);
+            const h = Math.round(img.naturalHeight * scale);
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+        }
+
+        function drawBoxes(canvas, img, detections) {
+            const maxH = 200;
+            const scale = Math.min(1, maxH / img.naturalHeight);
+            const w = Math.round(img.naturalWidth * scale);
+            const h = Math.round(img.naturalHeight * scale);
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Draw image
+            ctx.drawImage(img, 0, 0, w, h);
+
+            // Draw bounding boxes
+            detections.forEach(d => {
+                const [x1, y1, x2, y2] = d.bbox;
+                const sx = x1 * scale;
+                const sy = y1 * scale;
+                const sw = (x2 - x1) * scale;
+                const sh = (y2 - y1) * scale;
+
+                // Use green for high conf, orange for mid, red for low
+                let color = '#3fb950';
+                if (d.confidence < 0.4) color = '#f85149';
+                else if (d.confidence < 0.7) color = '#d2991d';
+
+                // Bounding box rect
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(sx, sy, sw, sh);
+
+                // Label background
+                const label = `${d.class} ${(d.confidence * 100).toFixed(0)}%`;
+                ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+                const textW = ctx.measureText(label).width;
+                ctx.fillStyle = color;
+                const labelH = 20;
+                ctx.fillRect(sx, Math.max(0, sy - labelH), textW + 8, labelH);
+
+                // Label text
+                ctx.fillStyle = '#fff';
+                ctx.fillText(label, sx + 4, Math.max(12, sy - 5));
+            });
+        }
+
         // ---- Process ----
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return;
 
-            // Reset cards to loading state
             document.querySelectorAll('.result-card .loading').forEach(el => {
                 el.textContent = '⏳ Processing';
             });
@@ -547,9 +838,12 @@
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
                 currentResults = data;
+                currentRawDetections = data.detections || [];
+                currentPerFile = data.per_file || [];
 
                 renderResults(data);
                 exportBtn.style.display = 'inline-block';
+                filterBar.style.display = 'flex';
                 uploadBtn.disabled = false;
             } catch (err) {
                 showStatus(`❌ Failed to load results: ${err.message}`, 'error');
@@ -558,10 +852,10 @@
         }
 
         function renderResults(data) {
-            const detections = data.detections || [];
-            const perFile = data.per_file || [];
+            const detections = currentRawDetections;
+            const perFile = currentPerFile;
 
-            // Group detections by image path
+            // Group detections by image path (unfiltered)
             const byImage = {};
             for (const d of detections) {
                 const imgPath = d.image;
@@ -578,10 +872,10 @@
                 <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
                 <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
                 <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
-                <span class="stat">📊 Unique: <span class="num">${data.unique_classes || classes.length}</span></span>
+                <span class="stat">⚡ <span class="num">${data.unique_classes || classes.length}</span> unique</span>
             `;
 
-            // Update each card with its detections
+            // Update each card
             selectedFiles.forEach((file, idx) => {
                 const card = document.getElementById(`card-${idx}`);
                 if (!card) return;
@@ -590,13 +884,11 @@
                 const loading = body.querySelector('.loading');
                 if (loading) loading.remove();
 
-                // Remove old detection list if any
                 const oldList = body.querySelector('.detection-list');
                 if (oldList) oldList.remove();
                 const oldEmpty = body.querySelector('.empty');
                 if (oldEmpty) oldEmpty.remove();
 
-                // Find detections for this file
                 const imgPath = `uploads/${currentTaskId}_${file.name}`;
                 const fileDets = byImage[imgPath] || [];
 
@@ -610,20 +902,23 @@
                     list.className = 'detection-list';
                     fileDets.forEach(d => {
                         const item = document.createElement('li');
-                        item.className = 'detection-item';
+                        item.className = 'detection-item animate-up';
                         const label = document.createElement('span');
                         label.className = 'detection-class';
                         label.textContent = d.class;
                         const conf = document.createElement('span');
-                        conf.className = 'detection-conf';
-                        conf.textContent = `${(d.confidence * 100).toFixed(1)}%`;
+                        const pct = d.confidence;
+                        let level = 'low';
+                        if (pct >= 0.7) level = 'high';
+                        else if (pct >= 0.4) level = 'medium';
+                        conf.className = `detection-conf ${level}`;
+                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
                         item.appendChild(label);
                         item.appendChild(conf);
                         list.appendChild(item);
                     });
                     body.appendChild(list);
 
-                    // Add count badge to filename
                     const fname = body.querySelector('.filename');
                     if (fname) {
                         const existing = fname.querySelector('.count-badge');
@@ -633,6 +928,12 @@
                         badge.textContent = `${fileDets.length}`;
                         fname.appendChild(badge);
                     }
+                }
+
+                // Draw bounding boxes
+                const previewInfo = imagePreviews[idx];
+                if (previewInfo && previewInfo.img) {
+                    drawBoxes(card.querySelector('.preview-canvas'), previewInfo.img, fileDets);
                 }
             });
         }
@@ -666,7 +967,6 @@
             if (!file) return;
             selectedVideo = file;
 
-            // Show video preview
             videoPreview.style.display = 'block';
             videoEl.src = URL.createObjectURL(file);
             videoInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
@@ -718,17 +1018,39 @@
                 <span class="stat">🎯 Objects: <span class="num">${totalObjects}</span></span>
                 <span class="stat">🏷️ Classes: <span class="num">${allClasses.length}</span></span>
             `;
-            videoSummary.textContent = `Frames with detections: ${frames.filter(f => f.object_count > 0).length} / ${totalFrames}`;
+            const hasDets = frames.filter(f => f.object_count > 0).length;
+            videoSummary.textContent = `Frames with detections: ${hasDets} / ${totalFrames}`;
+
+            // Build timeline
+            videoTimeline.style.display = 'flex';
+            videoTimeline.innerHTML = '<span class="tl-label">⏱️ Timeline:</span>';
+            frames.forEach((frame, idx) => {
+                const dot = document.createElement('div');
+                dot.className = 'tl-dot';
+                dot.dataset.frame = idx;
+                dot.title = `Frame ${idx} @ ${frame.timestamp}s (${frame.object_count} objects)`;
+                dot.style.background = frame.object_count > 0 ? 'var(--green)' : 'var(--border)';
+                dot.addEventListener('click', () => {
+                    document.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('active'));
+                    dot.classList.add('active');
+                    const card = document.getElementById(`vframe-${idx}`);
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                videoTimeline.appendChild(dot);
+            });
 
             // Build frame cards
             const fragment = document.createDocumentFragment();
             frames.forEach((frame, idx) => {
                 const card = document.createElement('div');
-                card.className = 'frame-card';
+                card.className = 'frame-card animate-in';
+                card.id = `vframe-${idx}`;
+                card.style.animationDelay = `${idx * 0.05}s`;
 
                 const header = document.createElement('div');
                 header.className = 'frame-header';
-                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>Frame ${frame.frame_number}</span>`;
+                const hasDet = frame.object_count > 0 ? '🎯' : '🔍';
+                header.innerHTML = `<span>⏱️ ${frame.timestamp}s</span><span>${hasDet} Frame ${frame.frame_number} (${frame.object_count})</span>`;
 
                 const body = document.createElement('div');
                 body.className = 'frame-body';
@@ -748,8 +1070,12 @@
                         label.className = 'detection-class';
                         label.textContent = d.class;
                         const conf = document.createElement('span');
-                        conf.className = 'detection-conf';
-                        conf.textContent = `${(d.confidence * 100).toFixed(1)}%`;
+                        const pct = d.confidence;
+                        let level = 'low';
+                        if (pct >= 0.7) level = 'high';
+                        else if (pct >= 0.4) level = 'medium';
+                        conf.className = `detection-conf ${level}`;
+                        conf.textContent = `${(pct * 100).toFixed(1)}%`;
                         item.appendChild(label);
                         item.appendChild(conf);
                         list.appendChild(item);
@@ -766,8 +1092,6 @@
             videoResultsGrid.appendChild(fragment);
             processVideoBtn.disabled = false;
         }
-
-
 
         // ---- Video helpers ----
         function showVideoStatus(msg, type) {
@@ -816,9 +1140,8 @@
                 startWebcamBtn.disabled = true;
                 stopWebcamBtn.disabled = false;
 
-                showWebcamStatus('📷 Camera active — detecting at ~1 FPS', 'success');
+                showWebcamStatus('📷 Camera active <span class="webcam-live-badge">LIVE</span> — detecting at ~1 FPS', 'success');
 
-                // Start periodic frame capture
                 webcamIntervalId = setInterval(captureAndDetect, 1000);
             } catch (err) {
                 const msg = err.name === 'NotAllowedError'
@@ -831,13 +1154,11 @@
         }
 
         function stopWebcam() {
-            // Clear interval
             if (webcamIntervalId) {
                 clearInterval(webcamIntervalId);
                 webcamIntervalId = null;
             }
 
-            // Stop all camera tracks
             if (mediaStream) {
                 mediaStream.getTracks().forEach(track => track.stop());
                 mediaStream = null;
@@ -857,7 +1178,6 @@
         }
 
         async function captureAndDetect() {
-            // Skip if previous frame is still processing
             if (isProcessingFrame || !mediaStream) return;
 
             const video = webcamVideo;
@@ -866,14 +1186,12 @@
             isProcessingFrame = true;
 
             try {
-                // Capture frame to canvas
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0);
 
-                // Convert to blob and send
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
 
                 const formData = new FormData();
@@ -897,23 +1215,26 @@
             const detections = data.detections || [];
             const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
 
+            // Apply confidence threshold
+            const filtered = detections.filter(d => d.confidence >= currentConfThreshold);
+
             let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-weight: 600; font-size: 0.9rem;">🎯 ${data.object_count} objects</span>
+                <span style="font-weight: 600; font-size: 0.9rem;">🎯 ${filtered.length} objects</span>
                 <span class="webcam-timer">⏱️ ${elapsed}s ago</span>
             </div>`;
 
-            if (detections.length === 0) {
+            if (filtered.length === 0) {
                 html += '<p style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">🔍 No objects detected in this frame</p>';
             } else {
                 html += '<div>';
-                detections.slice(0, 10).forEach(d => {
-                    html += `<div class="webcam-detection-item">
+                filtered.slice(0, 10).forEach(d => {
+                    html += `<div class="webcam-detection-item animate-up">
                         <span class="webcam-class">${d.class}</span>
                         <span class="webcam-conf">${(d.confidence * 100).toFixed(1)}%</span>
                     </div>`;
                 });
-                if (detections.length > 10) {
-                    html += `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 0.25rem;">+ ${detections.length - 10} more</p>`;
+                if (filtered.length > 10) {
+                    html += `<p style="color: var(--text-muted); font-size: 0.8rem; text-align: center; margin-top: 0.25rem;">+ ${filtered.length - 10} more</p>`;
                 }
                 html += '</div>';
             }
@@ -922,7 +1243,7 @@
         }
 
         function showWebcamStatus(msg, type) {
-            webcamStatus.textContent = msg;
+            webcamStatus.innerHTML = msg;
             webcamStatus.className = type;
             webcamStatus.style.display = 'block';
         }
@@ -939,6 +1260,12 @@
             selectedFiles = [];
             currentTaskId = null;
             currentResults = null;
+            currentRawDetections = null;
+            currentPerFile = null;
+            currentConfThreshold = 0;
+            confSlider.value = 0;
+            confValue.textContent = '0%';
+            imagePreviews = {};
             fileInput.value = '';
             folderInput.value = '';
             fileCount.textContent = '';
@@ -946,6 +1273,7 @@
             resultsGrid.innerHTML = '';
             resultsCard.style.display = 'none';
             statsBar.style.display = 'none';
+            filterBar.style.display = 'none';
             exportBtn.style.display = 'none';
             statusEl.className = '';
             statusEl.style.display = 'none';
@@ -958,7 +1286,6 @@
                     <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
                 </div>
             `;
-            // Re-bind buttons since we replaced innerHTML
             document.getElementById('selectFilesBtn').addEventListener('click', () => fileInput.click());
             document.getElementById('selectFolderBtn').addEventListener('click', () => folderInput.click());
             document.getElementById('dropZone').addEventListener('click', (e) => {
