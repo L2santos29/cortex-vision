@@ -57,21 +57,34 @@
         }
         .sidebar-brand {
             padding: 1.25rem 1.25rem 1rem;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--accent);
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
         }
-        .sidebar-brand .badge {
+        .sidebar-brand .logo {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+        .sidebar-brand .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .sidebar-brand .brand-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: -0.3px;
+        }
+        .sidebar-brand .brand-badge {
             font-size: 0.6rem;
             background: var(--green);
             color: #fff;
-            padding: 0.1rem 0.4rem;
-            border-radius: 8px;
+            padding: 0.08rem 0.4rem;
+            border-radius: 6px;
             font-weight: 600;
+            align-self: flex-start;
         }
         .sidebar-nav {
             padding: 0.5rem 0;
@@ -120,7 +133,7 @@
         .content {
             flex: 1;
             padding: 1.5rem 2rem;
-            max-width: 1200px;
+            min-width: 0;
         }
         .tab-content {
             display: none;
@@ -255,7 +268,6 @@
         .result-card:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(88,166,255,0.06); }
         .result-card .preview-canvas {
             width: 100%;
-            height: 180px;
             display: block;
             background: #000;
             border-bottom: 1px solid var(--border);
@@ -575,7 +587,11 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-brand">
-                🧠 Cortex-Vision <span class="badge">Pre-Alpha</span>
+                <span class="logo">🧠</span>
+                <div class="brand-text">
+                    <span class="brand-name">Cortex-Vision</span>
+                    <span class="brand-badge">Pre-Alpha</span>
+                </div>
             </div>
             <nav class="sidebar-nav" id="sidebarNav">
                 <button class="tab-btn active" data-tab="images">
@@ -589,6 +605,9 @@
                 </button>
                 <button class="tab-btn" data-tab="history">
                     📊 History
+                </button>
+                <button class="tab-btn" data-tab="about">
+                    📖 About
                 </button>
             </nav>
             <div class="sidebar-footer">
@@ -720,6 +739,55 @@
                 </div>
             </div>
 
+            <!-- ════════ TAB: ABOUT ════════ -->
+            <div class="tab-content" id="tab-about">
+                <div class="card">
+                    <h2>📖 About Cortex-Vision</h2>
+                    <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+                        <div>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🧠 What is Cortex-Vision?</h3>
+                            <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
+                                Cortex-Vision is an <strong>object recognition platform</strong> powered by YOLOv8, one of the fastest and most accurate real-time object detection models available. It combines computer vision with a modern web interface to make image analysis accessible to everyone.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🎯 What is it for?</h3>
+                            <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
+                                Upload images or videos, or use your webcam — Cortex-Vision detects and classifies objects in real time. Each detected object is highlighted with a colored bounding box showing its class label and confidence score. Use it for:<br><br>
+                                📸 <strong>Batch image analysis</strong> — process hundreds of photos at once<br>
+                                🎬 <strong>Video analysis</strong> — extract frames and detect objects throughout a video<br>
+                                📹 <strong>Live webcam</strong> — real-time detection at 1 frame per second<br>
+                                📊 <strong>Data export</strong> — download results as CSV or annotated images
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">⚙️ How does it work?</h3>
+                            <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
+                                1. <strong>Upload</strong> — images, video, or webcam feed are sent to the server<br>
+                                2. <strong>Inference</strong> — YOLOv8 (Ultralytics) processes each frame in memory<br>
+                                3. <strong>Detection</strong> — objects are identified with bounding boxes and confidence scores (COCO dataset, 80 classes)<br>
+                                4. <strong>Visualization</strong> — results appear with color-coded boxes (🔴→🟡→🟢 based on confidence)<br>
+                                5. <strong>Export</strong> — download CSV reports or annotated images<br><br>
+                                Stack: <strong>FastAPI</strong> + <strong>YOLOv8</strong> + <strong>OpenCV</strong> + vanilla HTML/CSS/JS.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">👤 Who made it and why?</h3>
+                            <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
+                                Created by <strong>L2santos29</strong> as a hands-on project to explore computer vision, containerized deployment, and full-stack development. The goal was to build a practical CV + LLM orchestration service that is easy to use, deployable with Docker, and extensible for future AI features.<br><br>
+                                🐙 <a href="https://github.com/L2santos29/cortex-vision" target="_blank" style="color:var(--accent);">github.com/L2santos29/cortex-vision</a><br>
+                                📄 MIT License
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -733,6 +801,7 @@
             video: document.getElementById('tab-video'),
             webcam: document.getElementById('tab-webcam'),
             history: document.getElementById('tab-history'),
+            about: document.getElementById('tab-about'),
         };
 
         function switchTab(tabId) {
@@ -1061,19 +1130,36 @@
         }
 
         function drawImageOnCanvas(canvas, img) {
-            const maxH = 180;
-            const scale = Math.min(1, maxH / img.naturalHeight);
-            canvas.width = Math.round(img.naturalWidth * scale);
-            canvas.height = Math.round(img.naturalHeight * scale);
+            const parent = canvas.parentElement;
+            const maxW = parent.clientWidth - 2;
+            const aspect = img.naturalWidth / img.naturalHeight;
+            let dispW = Math.min(maxW, img.naturalWidth);
+            let dispH = dispW / aspect;
+            const maxH = 240;
+            if (dispH > maxH) {
+                dispH = maxH;
+                dispW = dispH * aspect;
+            }
+            canvas.width = Math.round(dispW);
+            canvas.height = Math.round(dispH);
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
         function drawBoxes(canvas, img, detections) {
-            const maxH = 180;
-            const scale = Math.min(1, maxH / img.naturalHeight);
-            const w = Math.round(img.naturalWidth * scale);
-            const h = Math.round(img.naturalHeight * scale);
+            const parent = canvas.parentElement;
+            const maxW = parent.clientWidth - 2;
+            const aspect = img.naturalWidth / img.naturalHeight;
+            let dispW = Math.min(maxW, img.naturalWidth);
+            let dispH = dispW / aspect;
+            const maxH = 240;
+            if (dispH > maxH) {
+                dispH = maxH;
+                dispW = dispH * aspect;
+            }
+            const scale = dispW / img.naturalWidth;
+            const w = Math.round(dispW);
+            const h = Math.round(dispH);
             canvas.width = w;
             canvas.height = h;
             const ctx = canvas.getContext('2d');
@@ -1177,6 +1263,7 @@
                 case '2': switchTab('video'); break;
                 case '3': switchTab('webcam'); break;
                 case '4': switchTab('history'); break;
+                case '5': switchTab('about'); break;
             }
         });
 
