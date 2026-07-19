@@ -12,4 +12,5 @@ pytest-asyncio>=1.4
 hypothesis>=6.100
 freezegun>=1.5
 faker>=30.0
+httpx2>=0.3
 pydantic-settings>=2.0.0
