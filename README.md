@@ -86,17 +86,42 @@ docker run -p 8000:8000 cortex-vision
 ```
 cortex-vision/
 ├── src/
-│   ├── main.py          # FastAPI app — routes, webcam endpoint
+│   ├── main.py           # FastAPI app — routes, middleware setup
+│   ├── config.py         # Pydantic settings from env vars
 │   ├── detector.py       # YOLOv8 inference engine (detect + detect_array)
 │   ├── pipeline.py       # Batch processing and aggregation
-│   └── utils.py          # Validation, image preprocessing, video frame extraction
+│   ├── services.py       # Service layer — upload, validation, detection orchestration
+│   ├── cache.py          # LRU detection cache to avoid redundant inference
+│   ├── resilience.py     # Circuit breaker + retry with exponential backoff
+│   ├── middleware.py     # Auth, CORS, rate limiting, security headers, metrics, tracing
+│   ├── profiling.py      # Performance decorators (@timed) and context managers
+│   ├── utils.py          # Validation, magic-byte checks, frame extraction, drawing
+│   └── cli.py            # Command-line interface (detect, serve subcommands)
 ├── static/
 │   └── index.html        # Full web UI — tabs, canvas, webcam, history
 ├── tests/
-│   └── test_detector.py
+│   ├── smoke/            # Module imports, app instantiation
+│   ├── unit/             # Unit tests for services, routes, profiling, utils
+│   ├── edge/             # Edge cases — nulls, boundaries, malformed inputs
+│   ├── integration/      # API + middleware integration tests
+│   ├── contract/         # API response schema and status code checks
+│   ├── property/         # Hypothesis property-based tests
+│   ├── regression/       # Regression tests for known bugs
+│   ├── performance/      # pytest-benchmark baselines
+│   └── fault/            # Fault injection — disk full, network timeout, bad auth
+├── deploy/
+│   ├── docker-compose.staging.yml  # Staging environment with Caddy + TLS
+│   ├── Caddyfile         # Reverse proxy config with Let's Encrypt
+│   ├── prometheus-alerts.yml       # Alerting rules for production
+│   └── grafana-dashboard.json      # Grafana dashboard definition
+├── .github/
+│   ├── workflows/ci.yml            # CI — tests + coverage + lint + dependency audit
+│   ├── workflows/deploy-staging.yml # Staging deployment pipeline
+│   └── dependabot.yml              # Automated dependency updates
 ├── scripts/
 │   └── run.sh            # Quick start helper
-├── Makefile              # Entry point: make run, make test, make clean
+├── PERFORMANCE.md         # Benchmark baselines and bottleneck analysis
+├── Makefile               # Entry point: make run, make test, make clean
 ├── requirements.txt
 ├── Dockerfile
 └── README.md
@@ -112,9 +137,10 @@ cortex-vision/
 | `POST` | `/v1/upload/batch` | Upload multiple images (batch) |
 | `POST` | `/v1/upload/video` | Upload video — returns per-frame detections with annotated frame images |
 | `POST` | `/v1/detect/frame` | Receive a webcam frame and run detection (no disk I/O) |
-| `GET` | `/v1/results/{task_id}` | Get batch image results |
+| `GET` | `/v1/results/{task_id}` | Get batch image results (paginated) |
 | `GET` | `/v1/export/{task_id}` | Export batch results as CSV |
 | `GET` | `/health` | Health check |
+| `GET` | `/metrics` | Prometheus metrics (request count, latency, P99) |
 
 ---
 
@@ -137,7 +163,10 @@ curl -X POST -H "X-API-Key: your-api-key" -F "file=@video.mp4" http://localhost:
 curl -X POST -H "X-API-Key: your-api-key" -F "file=@frame.jpg" http://localhost:8000/v1/detect/frame
 
 # Export CSV
-curl http://localhost:8000/v1/export/<task_id> -o results.csv
+curl -H "X-API-Key: your-api-key" http://localhost:8000/v1/export/<task_id> -o results.csv
+
+# Metrics (Prometheus format)
+curl -H "X-API-Key: your-api-key" http://localhost:8000/metrics
 ```
 
 ---
@@ -154,7 +183,7 @@ curl http://localhost:8000/v1/export/<task_id> -o results.csv
 
 ## Status
 
-**Pre-Alpha** — Core detection pipeline is functional with all three input modes (images, video, webcam). UI is fully interactive with bounding boxes, filters, timeline, and history. Areas for improvement: authentication, rate limiting, persistent storage, and comprehensive test coverage.
+**Alpha** — Core detection pipeline is functional with all three input modes (images, video, webcam). Authentication, rate limiting, security headers, metrics, and alerting are all implemented. Test coverage is at **87%** with 290 tests across unit, integration, contract, property-based, regression, and fault injection suites.
 
 ---
 
@@ -217,10 +246,12 @@ El compose de staging incluye:
 
 El workflow `.github/workflows/deploy-staging.yml` se ejecuta automáticamente
 en cada push a `main`:
-1. Ejecuta tests con cobertura (mínimo 80%)
-2. Construye la imagen Docker
-3. Guarda el artefacto para deploy
-4. (Opcional) Despliega vía SSH al servidor de staging
+1. Construye la imagen Docker
+2. Guarda el artefacto para deploy
+3. (Opcional) Despliega vía SSH al servidor de staging
+
+> Los tests con cobertura se ejecutan en `.github/workflows/ci.yml` y son requisito
+> para que el deploy proceda.
 
 Para activar el deploy remoto, configura los secrets en GitHub:
 - `STAGING_HOST`
