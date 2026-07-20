@@ -1,5 +1,3 @@
-"""Service layer for detection business logic."""
-
 import asyncio
 import csv
 import io
@@ -254,7 +252,7 @@ class DetectionService:
         """Get batch results for a task ID."""
         return self.batch_results.get(task_id)
 
-    def export_batch_csv(self, task_id: str) -> str | None:
+    async def export_batch_csv(self, task_id: str) -> str | None:
         """Export batch results as CSV and return the file path."""
         result = self.get_batch_result(task_id)
         if result is None:
@@ -275,5 +273,9 @@ class DetectionService:
 
         safe_name = sanitize_filename(f"{task_id}.csv")
         csv_path = self.output_dir / safe_name
-        csv_path.write_text(output.getvalue())
+        try:
+            await asyncio.to_thread(csv_path.write_text, output.getvalue())
+        except OSError as exc:
+            logger.error("Failed to write CSV export %s: %s", csv_path, exc)
+            return None
         return str(csv_path)

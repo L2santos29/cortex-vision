@@ -1,5 +1,3 @@
-"""LRU cache for detection results to avoid redundant inference."""
-
 import hashlib
 from collections import OrderedDict
 
@@ -37,5 +35,4 @@ class DetectionCache:
             self._cache.popitem(last=False)
 
     def clear(self) -> None:
-        """Clear all cached results."""
         self._cache.clear()

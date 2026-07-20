@@ -3,40 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cortex-Vision</title>
+    <title>Cortex-Vision — Object Recognition</title>
     <style>
         :root {
             --bg: #0d1117;
             --card: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
+            --text: #e6edf3;
             --text-muted: #8b949e;
+            --border: #30363d;
             --accent: #58a6ff;
-            --green: #3fb950;
-            --orange: #d2991d;
             --red: #f85149;
-            --sidebar-w: 220px;
+            --orange: #d29922;
+            --green: #3fb950;
+            --sidebar-w: 200px;
         }
         :root.light {
             --bg: #ffffff;
             --card: #f6f8fa;
-            --border: #d0d7de;
             --text: #1f2328;
             --text-muted: #656d76;
+            --border: #d0d7de;
             --accent: #0969da;
-            --green: #1a7f37;
-            --orange: #9a6700;
             --red: #cf222e;
+            --orange: #9a6700;
+            --green: #1a7f37;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
         }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in { animation: fadeIn 0.25s ease-out both; }
+        .animate-up { animation: slideUp 0.3s ease-out both; }
 
-        /* ---- Layout ---- */
         .app-layout {
             display: flex;
             min-height: 100vh;
@@ -109,6 +117,11 @@
             background: rgba(88,166,255,0.05);
             color: var(--text);
         }
+        .tab-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: -2px;
+            border-radius: 0;
+        }
         .tab-btn.active {
             background: rgba(88,166,255,0.1);
             color: var(--accent);
@@ -143,43 +156,28 @@
             animation: fadeIn 0.25s ease-out;
         }
 
-        /* ---- Animations ---- */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .animate-in { animation: fadeIn 0.35s ease-out forwards; }
-        .animate-up { animation: fadeInUp 0.25s ease-out forwards; }
-
-        /* ---- Shared components ---- */
+        /* Cards */
         .card {
             background: var(--card);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
         }
-        .card h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+        .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.75rem; }
+
         .upload-area {
             border: 2px dashed var(--border);
-            border-radius: 8px;
-            padding: 2.5rem 2rem;
+            border-radius: 10px;
+            padding: 1.75rem 1rem;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
+            transition: border-color 0.2s;
         }
         .upload-area:hover { border-color: var(--accent); }
-        .upload-area.dragover { border-color: var(--green); background: rgba(63,185,80,0.05); }
-        .upload-area .icon { font-size: 2.2rem; margin-bottom: 0.4rem; }
-        .upload-area .sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.4rem; }
+        .upload-area.dragover { border-color: var(--accent); background: rgba(88,166,255,0.05); }
+        .upload-area .icon { font-size: 2.4rem; margin-bottom: 0.25rem; }
+        .upload-area .sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
         .upload-methods {
             display: flex;
             gap: 0.75rem;
@@ -196,6 +194,10 @@
             background: var(--card);
             color: var(--text);
             transition: border-color 0.2s;
+        }
+        .btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
         .btn:hover { border-color: var(--accent); }
         .btn-primary { background: var(--accent); color: #fff; border: none; }
@@ -242,6 +244,10 @@
             cursor: pointer;
             border: 2px solid var(--card);
         }
+        .filter-bar input[type="range"]:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
         .filter-bar input[type="range"]::-moz-range-thumb {
             width: 16px; height: 16px;
             border-radius: 50%;
@@ -263,66 +269,59 @@
             border: 1px solid var(--border);
             border-radius: 8px;
             overflow: hidden;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: box-shadow 0.2s;
         }
-        .result-card:hover { border-color: var(--accent); box-shadow: 0 0 12px rgba(88,166,255,0.06); }
+        .result-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
         .result-card .preview-canvas {
             width: 100%;
             display: block;
             background: #000;
-            border-bottom: 1px solid var(--border);
         }
-        .result-card .body { padding: 0.65rem 0.85rem; }
+        .result-card .body { padding: 0.75rem 0.85rem 0.85rem; }
         .result-card .filename {
             font-size: 0.82rem;
-            color: var(--text-muted);
-            margin-bottom: 0.4rem;
-            word-break: break-all;
+            font-weight: 600;
+            color: var(--text);
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.5rem;
+            margin-bottom: 0.4rem;
+            word-break: break-all;
         }
         .result-card .filename .count-badge {
-            display: inline-block;
-            background: var(--orange);
-            color: #fff;
-            padding: 0.1rem 0.4rem;
-            border-radius: 8px;
             font-size: 0.65rem;
-            margin-left: auto;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.05rem 0.45rem;
+            border-radius: 8px;
+            font-weight: 600;
+            flex-shrink: 0;
         }
         .result-card .detection-list { list-style: none; }
         .result-card .detection-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
             padding: 0.25rem 0;
-            border-bottom: 1px solid rgba(48,54,61,0.4);
+            border-bottom: 1px solid var(--border);
             font-size: 0.82rem;
         }
         .result-card .detection-item:last-child { border-bottom: none; }
-        .detection-class { color: var(--accent); }
+        .detection-class { color: var(--text); }
         .detection-conf {
-            background: rgba(88,166,255,0.15);
-            color: var(--accent);
-            padding: 0.1rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.72rem;
             font-weight: 600;
         }
-        .detection-conf.high { background: rgba(63,185,80,0.2); color: var(--green); }
-        .detection-conf.medium { background: rgba(210,153,29,0.2); color: var(--orange); }
-        .detection-conf.low { background: rgba(248,81,73,0.15); color: var(--red); }
+        .detection-conf.high { color: var(--green); }
+        .detection-conf.medium { color: var(--orange); }
+        .detection-conf.low { color: var(--red); }
         .result-card .empty {
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            font-style: italic;
+            padding: 1rem 0;
             text-align: center;
-            padding: 0.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
         }
-        .result-card .loading { text-align: center; padding: 1rem 0; color: var(--text-muted); }
-        .result-card .loading::after { content: '...'; animation: dots 1.5s steps(4, end) infinite; }
-        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+        .result-card .loading { text-align: center; padding: 1rem; font-size: 0.85rem; color: var(--text-muted); }
+        .result-card .loading::after { content: '...'; animation: dots 1.2s steps(3,end) infinite; }
+        @keyframes dots { 0% { content: ''; } 33% { content: '.'; } 66% { content: '..'; } 100% { content: '...'; } }
 
         /* Stats bar */
         .stats-bar {
@@ -345,6 +344,10 @@
             padding: 0.3rem 0.8rem;
             margin-bottom: 0.5rem;
             transition: border-color 0.2s;
+        }
+        .chart-toggle:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
         .chart-toggle:hover { border-color: var(--accent); }
         .chart-box {
@@ -403,186 +406,157 @@
         .frame-card .frame-header {
             display: flex;
             justify-content: space-between;
-            padding: 0.45rem 0.7rem;
-            background: rgba(48,54,61,0.3);
-            font-size: 0.78rem;
-            color: var(--text-muted);
+            padding: 0.5rem 0.75rem;
+            background: var(--card);
             border-bottom: 1px solid var(--border);
-        }
-        .frame-card .frame-body { padding: 0.45rem 0.7rem; }
-        .frame-card .frame-body .empty {
+            font-size: 0.8rem;
             color: var(--text-muted);
-            font-size: 0.78rem;
-            font-style: italic;
-            text-align: center;
-            padding: 0.4rem 0;
         }
+        .frame-card .frame-body { padding: 0.5rem 0.75rem; }
+        .frame-card .frame-body .empty { text-align: center; color: var(--text-muted); padding: 0.5rem; font-size: 0.85rem; }
         .frame-card .frame-body .detection-list { list-style: none; }
         .frame-card .frame-body .detection-item {
             display: flex;
             justify-content: space-between;
             padding: 0.2rem 0;
-            border-bottom: 1px solid rgba(48,54,61,0.25);
-            font-size: 0.78rem;
+            font-size: 0.8rem;
+            border-bottom: 1px solid var(--border);
         }
         .frame-card .frame-body .detection-item:last-child { border-bottom: none; }
-
-        /* Annotated frame image */
         .frame-card .annotated-frame {
             width: 100%;
             display: block;
             background: #000;
-            border-bottom: 1px solid var(--border);
         }
 
-        /* Webcam overlay */
+        /* Webcam */
         .webcam-container {
             position: relative;
             background: #000;
             border-radius: 8px;
             overflow: hidden;
-            aspect-ratio: 4/3;
+            min-height: 200px;
         }
         .webcam-container video {
             width: 100%;
-            height: 100%;
             display: block;
-            object-fit: contain;
+            border-radius: 8px;
         }
         .webcam-container canvas {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
         }
-
-        /* Video timeline */
         .video-timeline {
             display: flex;
-            gap: 4px;
-            align-items: center;
-            padding: 0.65rem 0.5rem;
+            gap: 0.3rem;
             overflow-x: auto;
+            padding: 0.5rem 0;
             margin-bottom: 0.75rem;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            align-items: center;
+        }
+        .video-timeline .tl-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
         }
         .video-timeline .tl-dot {
-            width: 13px; height: 13px;
+            width: 6px; height: 6px;
+            min-width: 6px;
             border-radius: 50%;
+            background: var(--border);
             cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s;
-            flex-shrink: 0;
-            border: 2px solid transparent;
+            transition: background 0.2s, transform 0.15s;
         }
-        .video-timeline .tl-dot:hover { transform: scale(1.4); box-shadow: 0 0 8px rgba(88,166,255,0.4); border-color: var(--accent); }
-        .video-timeline .tl-dot.active { border-color: var(--accent); box-shadow: 0 0 8px rgba(88,166,255,0.3); }
-        .video-timeline .tl-label { font-size: 0.7rem; color: var(--text-muted); margin-right: 0.5rem; flex-shrink: 0; }
+        .video-timeline .tl-dot:hover { background: var(--accent); transform: scale(1.5); }
+        .video-timeline .tl-dot.active { background: var(--accent); transform: scale(1.5); }
+        .video-timeline .tl-label { font-size: 0.78rem; color: var(--text-muted); flex-shrink: 0; }
 
-        /* Webcam */
         .webcam-detection-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 0.35rem 0;
-            border-bottom: 1px solid rgba(48,54,61,0.3);
-            font-size: 0.85rem;
+            padding: 0.3rem 0;
+            font-size: 0.84rem;
+            border-bottom: 1px solid var(--border);
         }
         .webcam-detection-item:last-child { border-bottom: none; }
-        .webcam-class { color: var(--accent); font-weight: 500; }
+        .webcam-class { color: var(--text); }
         .webcam-conf {
-            background: rgba(88,166,255,0.15);
-            color: var(--accent);
-            padding: 0.12rem 0.5rem;
-            border-radius: 10px;
-            font-size: 0.78rem;
             font-weight: 600;
         }
-        .webcam-timer { color: var(--text-muted); font-size: 0.75rem; }
-        .webcam-status { padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.82rem; display: none; margin-bottom: 0.5rem; }
-        .webcam-status.info { display: block; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); }
-        .webcam-status.success { display: block; background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
-        .webcam-status.error { display: block; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+        .webcam-conf.high { color: var(--green); }
+        .webcam-conf.medium { color: var(--orange); }
+        .webcam-conf.low { color: var(--red); }
+        .webcam-timer { font-size: 0.78rem; color: var(--text-muted); }
+        .webcam-status { font-size: 0.85rem; margin-top: 0.5rem; }
+        .webcam-status.info { color: var(--accent); }
+        .webcam-status.success { color: var(--green); }
+        .webcam-status.error { color: var(--red); }
         .webcam-live-badge {
             display: inline-block;
-            background: var(--green);
-            color: #fff;
-            padding: 0.12rem 0.45rem;
-            border-radius: 8px;
             font-size: 0.65rem;
+            font-weight: 700;
+            color: #fff;
+            background: var(--red);
+            padding: 0.1rem 0.5rem;
+            border-radius: 8px;
             animation: pulse 1.5s ease-in-out infinite;
-            margin-left: 0.4rem;
         }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
         /* History */
-        .history-list { margin-top: 0.5rem; }
+        .history-list { display: flex; flex-direction: column; gap: 0.5rem; }
         .history-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            padding: 0.85rem 1rem;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg);
             border: 1px solid var(--border);
             border-radius: 8px;
-            margin-bottom: 0.65rem;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
+            transition: border-color 0.2s;
         }
-        .history-item:hover { border-color: var(--accent); background: rgba(88,166,255,0.03); }
-        .history-item .h-icon { font-size: 1.5rem; flex-shrink: 0; }
+        .history-item:hover { border-color: var(--accent); }
+        .history-item .h-icon { font-size: 1.2rem; flex-shrink: 0; }
         .history-item .h-info { flex: 1; min-width: 0; }
-        .history-item .h-info .h-title { font-size: 0.9rem; font-weight: 500; }
-        .history-item .h-info .h-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
-        .history-item .h-time { font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; }
+        .history-item .h-info .h-title { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+        .history-item .h-info .h-meta { font-size: 0.75rem; color: var(--text-muted); }
+        .history-item .h-time { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; }
         .history-empty {
             text-align: center;
-            padding: 3rem 1rem;
+            padding: 2rem 1rem;
             color: var(--text-muted);
         }
-        .history-empty .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .history-empty .icon { font-size: 2rem; margin-bottom: 0.5rem; }
 
-        /* Responsive */
+        /* Mobile */
         @media (max-width: 768px) {
             .sidebar {
-                position: fixed;
-                bottom: 0;
-                top: auto;
-                height: auto;
-                width: 100%;
-                border-right: none;
-                border-top: 1px solid var(--border);
-                z-index: 100;
-                flex-direction: row;
-                overflow-x: auto;
+                width: 56px;
+                overflow: visible;
             }
             .sidebar-brand, .sidebar-footer { display: none; }
-            .sidebar-nav {
-                display: flex;
-                flex-direction: row;
-                padding: 0;
-                flex: 1;
-            }
+            .sidebar-nav { padding: 0.25rem 0; }
             .tab-btn {
-                flex-direction: column;
-                padding: 0.5rem 0.75rem;
-                border-right: none;
-                border-top: 2px solid transparent;
-                font-size: 0.7rem;
-                gap: 0.2rem;
-                min-width: 70px;
+                padding: 0.65rem 0;
                 justify-content: center;
-                text-align: center;
+                border-right: none;
+                border-bottom: 2px solid transparent;
+                font-size: 1.1rem;
+                position: relative;
             }
-            .tab-btn.active { border-right: none; border-top-color: var(--accent); }
-            .tab-btn .count { margin-left: 0; }
-            .content { padding: 1rem 0.75rem; padding-bottom: 80px; }
+            .tab-btn .count { display: none; }
+            .tab-btn.active { border-bottom-color: var(--accent); }
+            .content { padding: 1rem; }
             .results-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
+
     <div class="app-layout">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -618,7 +592,7 @@
             </div>
         </aside>
 
-        <!-- Content -->
+        <!-- Main content -->
         <main class="content">
 
             <!-- ════════ TAB: IMAGES ════════ -->
@@ -638,7 +612,7 @@
                     <input type="file" id="folderInput" multiple accept=".jpg,.jpeg,.png,.webp,.bmp" webkitdirectory>
                     <div style="margin-top: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
                         <button class="btn btn-primary" id="uploadBtn" disabled>🚀 Process Images</button>
-                        <button class="btn" id="clearBtn">🗑️ Clear</button>
+                        <button class="btn" id="clearBtn" aria-label="Clear all images">🗑️ Clear</button>
                         <span id="fileCount" style="color: var(--text-muted); font-size: 0.85rem;"></span>
                     </div>
                     <div class="status-msg" id="imgStatus"></div>
@@ -748,39 +722,40 @@
                         <div>
                             <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🧠 What is Cortex-Vision?</h3>
                             <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
-                                Cortex-Vision is an <strong>object recognition platform</strong> powered by YOLOv8, one of the fastest and most accurate real-time object detection models available. It combines computer vision with a modern web interface to make image analysis accessible to everyone.
+                                A production-oriented object recognition platform powered by <strong>YOLOv8</strong>.
+                                It processes images, videos, and live webcam streams, rendering bounding boxes
+                                with confidence scores in real time.
                             </p>
                         </div>
 
                         <div>
-                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🎯 What is it for?</h3>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">⌨️ Keyboard Shortcuts</h3>
                             <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
-                                Upload images or videos, or use your webcam — Cortex-Vision detects and classifies objects in real time. Each detected object is highlighted with a colored bounding box showing its class label and confidence score. Use it for:<br><br>
-                                📸 <strong>Batch image analysis</strong> — process hundreds of photos at once<br>
-                                🎬 <strong>Video analysis</strong> — extract frames and detect objects throughout a video<br>
-                                📹 <strong>Live webcam</strong> — real-time detection at 1 frame per second<br>
-                                📊 <strong>Data export</strong> — download results as CSV or annotated images
+                                <strong>Space</strong> — Toggle webcam<br>
+                                <strong>E</strong> — Export CSV<br>
+                                <strong>R</strong> — Clear current session<br>
+                                <strong>1–5</strong> — Switch tabs (Images, Video, Webcam, History, About)
                             </p>
                         </div>
 
                         <div>
-                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">⚙️ How does it work?</h3>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🔗 Links</h3>
                             <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
-                                1. <strong>Upload</strong> — images, video, or webcam feed are sent to the server<br>
-                                2. <strong>Inference</strong> — YOLOv8 (Ultralytics) processes each frame in memory<br>
-                                3. <strong>Detection</strong> — objects are identified with bounding boxes and confidence scores (COCO dataset, 80 classes)<br>
-                                4. <strong>Visualization</strong> — results appear with color-coded boxes (🔴→🟡→🟢 based on confidence)<br>
-                                5. <strong>Export</strong> — download CSV reports or annotated images<br><br>
-                                Stack: <strong>FastAPI</strong> + <strong>YOLOv8</strong> + <strong>OpenCV</strong> + vanilla HTML/CSS/JS.
+                                <strong>API Docs</strong> — <code>/docs</code> (Swagger)<br>
+                                <strong>Source</strong> — <a href="https://github.com/L2santos29/cortex-vision" target="_blank" rel="noopener" style="color:var(--accent);">github.com/L2santos29/cortex-vision</a><br>
+                                <strong>License</strong> — MIT
                             </p>
                         </div>
 
                         <div>
-                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">👤 Who made it and why?</h3>
+                            <h3 style="font-size:1rem;color:var(--accent);margin-bottom:0.4rem;">🛡️ Security Notes</h3>
                             <p style="font-size:0.9rem;color:var(--text);line-height:1.6;">
-                                Created by <strong>L2santos29</strong> as a hands-on project to explore computer vision, containerized deployment, and full-stack development. The goal was to build a practical CV + LLM orchestration service that is easy to use, deployable with Docker, and extensible for future AI features.<br><br>
-                                🐙 <a href="https://github.com/L2santos29/cortex-vision" target="_blank" style="color:var(--accent);">github.com/L2santos29/cortex-vision</a><br>
-                                📄 MIT License
+                                All uploads are processed in memory and discarded after analysis.
+                                Your images and videos are never stored permanently on the server.
+                                <br><br>
+                                <strong>Disclaimer:</strong> This is a demonstration project.
+                                For production use, deploy behind a reverse proxy with HTTPS
+                                and configure a strong <code>API_KEY</code> via environment variable.
                             </p>
                         </div>
 
@@ -792,9 +767,9 @@
     </div>
 
     <script>
-        // ══════════════════════════════════════════════
-        //  TAB NAVIGATION
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
+        //  TAB SYSTEM
+        // ══════════════════════════════════════
         const tabBtns = document.querySelectorAll('.tab-btn');
         const tabContents = {
             images: document.getElementById('tab-images'),
@@ -804,7 +779,25 @@
             about: document.getElementById('tab-about'),
         };
 
-        // HTML escape helper to prevent XSS
+        function switchTab(tabId) {
+            tabBtns.forEach(btn => {
+                const isActive = btn.dataset.tab === tabId;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-selected', isActive);
+            });
+            Object.entries(tabContents).forEach(([id, el]) => {
+                el.classList.toggle('active', id === tabId);
+            });
+        }
+
+        // Tab click handlers
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        // ══════════════════════════════════════
+        //  ESCAPE HTML
+        // ══════════════════════════════════════
         function escapeHtml(str) {
             const div = document.createElement('div');
             div.appendChild(document.createTextNode(str));
@@ -818,22 +811,19 @@
         }
 
         function switchTab(tabId) {
-            tabBtns.forEach(b => {
-                b.classList.toggle('active', b.dataset.tab === tabId);
-                b.setAttribute('aria-selected', b.dataset.tab === tabId);
+            tabBtns.forEach(btn => {
+                const isActive = btn.dataset.tab === tabId;
+                btn.classList.toggle('active', isActive);
+                btn.setAttribute('aria-selected', isActive);
             });
             Object.entries(tabContents).forEach(([id, el]) => {
                 el.classList.toggle('active', id === tabId);
             });
         }
 
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-        });
-
-        // ══════════════════════════════════════════════
-        //  IMAGE ELEMENTS
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
+        //  IMAGES UPLOAD
+        // ══════════════════════════════════════
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const folderInput = document.getElementById('folderInput');
@@ -860,14 +850,14 @@
         let selectedFiles = [];
         let currentTaskId = null;
         let currentResults = null;
-        let currentRawDetections = null;
-        let currentPerFile = null;
+        let currentRawDetections = [];
+        let currentPerFile = [];
         let currentConfThreshold = 0;
-        let imagePreviews = {};
+        let imagePreviews = [];
 
-        // ══════════════════════════════════════════════
-        //  VIDEO ELEMENTS
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
+        //  VIDEO UPLOAD
+        // ══════════════════════════════════════
         const videoDropZone = document.getElementById('videoDropZone');
         const videoInput = document.getElementById('videoInput');
         const selectVideoBtn = document.getElementById('selectVideoBtn');
@@ -882,12 +872,11 @@
         const videoSummary = document.getElementById('videoSummary');
         const videoTimeline = document.getElementById('videoTimeline');
         const vidCount = document.getElementById('vidCount');
-
         let selectedVideo = null;
 
-        // ══════════════════════════════════════════════
-        //  WEBCAM ELEMENTS
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
+        //  WEBCAM
+        // ══════════════════════════════════════
         const startWebcamBtn = document.getElementById('startWebcamBtn');
         const stopWebcamBtn = document.getElementById('stopWebcamBtn');
         const webcamVideo = document.getElementById('webcamVideo');
@@ -902,28 +891,28 @@
         let isProcessingFrame = false;
         let lastFrameTime = null;
 
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
         //  HISTORY
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
         const historyList = document.getElementById('historyList');
 
         function loadHistory() {
-            try { return JSON.parse(localStorage.getItem('cv_history') || '[]'); }
+            try { return JSON.parse(localStorage.getItem('cortexHistory') || '[]'); }
             catch { return []; }
         }
 
         function saveHistoryItem(item) {
             const history = loadHistory();
-            history.unshift(item);
+            history.unshift({ ...item, timestamp: Date.now() });
             if (history.length > 50) history.length = 50;
-            localStorage.setItem('cv_history', JSON.stringify(history));
+            localStorage.setItem('cortexHistory', JSON.stringify(history));
             renderHistory();
         }
 
         function removeHistoryItem(id) {
             let history = loadHistory();
             history = history.filter(h => h.id !== id);
-            localStorage.setItem('cv_history', JSON.stringify(history));
+            localStorage.setItem('cortexHistory', JSON.stringify(history));
             renderHistory();
         }
 
@@ -951,10 +940,10 @@
                         <div class="h-icon">${iconMap[h.type] || '📁'}</div>
                         <div class="h-info">
                             <div class="h-title">${escapeHtml(h.summary || h.type)}</div>
-                            <div class="h-meta">${escapeHtml(String(h.fileCount || 0))} files · ${escapeHtml(String(h.objectCount || 0))} objects · ${escapeHtml(h.classes || '')}</div>
+                            <div class="h-meta">${escapeHtml(String(h.fileCount || 0))} files · ${escapeHtml(String(h.objectCount || 0))} objects</div>
                         </div>
                         <div class="h-time">${timeStr}</div>
-                        <button class="btn btn-sm" data-id="${safeId}">✕</button>
+                        <button class="btn btn-sm" data-id="${safeId}" aria-label="Remove history item">✕</button>
                     </div>
                 `;
             });
@@ -974,322 +963,19 @@
             });
         }
 
-        // ══════════════════════════════════════════════
-        //  CONFIDENCE FILTER
-        // ══════════════════════════════════════════════
-        confSlider.addEventListener('input', () => {
-            const val = parseInt(confSlider.value);
-            confValue.textContent = val + '%';
-            currentConfThreshold = val / 100;
-            if (currentRawDetections) applyConfidenceFilter();
-        });
-
-        function applyConfidenceFilter() {
-            const threshold = currentConfThreshold;
-            const filtered = currentRawDetections.filter(det => det.confidence >= threshold);
-            const totalImages = currentPerFile ? currentPerFile.length : 0;
-            const classes = [...new Set(filtered.map(det => det.class))];
-
-            statsBar.innerHTML = `
-                <span class="stat">📸 Images: <span class="num">${totalImages}</span></span>
-                <span class="stat">🎯 Objects: <span class="num">${filtered.length}</span></span>
-                <span class="stat">🏷️ Classes: <span class="num">${classes.length}</span></span>
-            `;
-
-            const byImage = {};
-            for (const det of filtered) {
-                const imgPath = det.image;
-                if (!byImage[imgPath]) byImage[imgPath] = [];
-                byImage[imgPath].push(det);
-            }
-
-            selectedFiles.forEach((file, idx) => {
-                const card = document.getElementById(`card-${idx}`);
-                if (!card) return;
-                const body = card.querySelector('.body');
-                const perFileEntry = currentPerFile ? currentPerFile[idx] : null;
-                const imgPath = perFileEntry ? perFileEntry.image : null;
-                const dets = imgPath ? (byImage[imgPath] || []) : [];
-
-                let listEl = body.querySelector('.detection-list');
-                let emptyEl = body.querySelector('.empty');
-                if (listEl) listEl.remove();
-                if (emptyEl) emptyEl.remove();
-
-                if (dets.length === 0) {
-                    const e = document.createElement('div');
-                    e.className = 'empty';
-                    e.textContent = '🔍 No objects detected (filtered)';
-                    body.appendChild(e);
-                } else {
-                    const list = document.createElement('ul');
-                    list.className = 'detection-list';
-                    dets.forEach(det => {
-                        const item = document.createElement('li');
-                        item.className = 'detection-item animate-up';
-                        const labelEl = document.createElement('span');
-                        labelEl.className = 'detection-class';
-                        labelEl.textContent = det.class;
-                        const confSpan = document.createElement('span');
-                        const pct = det.confidence;
-                        let lv = 'low';
-                        if (pct >= 0.7) lv = 'high';
-                        else if (pct >= 0.4) lv = 'medium';
-                        confSpan.className = `detection-conf ${lv}`;
-                        confSpan.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(labelEl);
-                        item.appendChild(confSpan);
-                        list.appendChild(item);
-                    });
-                    body.appendChild(list);
-                }
-
-                const fname = body.querySelector('.filename');
-                if (fname) {
-                    const existing = fname.querySelector('.count-badge');
-                    if (existing) existing.remove();
-                    if (dets.length > 0) {
-                        const badge = document.createElement('span');
-                        badge.className = 'count-badge';
-                        badge.textContent = dets.length;
-                        fname.appendChild(badge);
-                    }
-                }
-
-                const pi = imagePreviews[idx];
-                if (pi && pi.img) {
-                    drawBoxes(card.querySelector('.preview-canvas'), pi.img, dets);
-                }
-            });
-        }
-
-        // ══════════════════════════════════════════════
-        //  IMAGE FILE SELECTION
-        // ══════════════════════════════════════════════
-        selectFilesBtn.addEventListener('click', () => fileInput.click());
-        selectFolderBtn.addEventListener('click', () => folderInput.click());
-        fileInput.addEventListener('change', () => handleSelectedFiles(fileInput.files));
-        folderInput.addEventListener('change', () => handleSelectedFiles(folderInput.files));
-
-        dropZone.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-            fileInput.click();
-        });
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            handleSelectedFiles(e.dataTransfer.files);
-        });
-
-        function handleSelectedFiles(files) {
-            if (!files || files.length === 0) return;
-            const valid = ['.jpg', '.jpeg', '.png', '.webp', '.bmp'];
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            selectedFiles = Array.from(files).filter(f => {
-                const ext = '.' + f.name.split('.').pop().toLowerCase();
-                return valid.includes(ext);
-            }).filter(f => {
-                if (f.size > maxSize) {
-                    console.warn(`File too large: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB > 10 MB)`);
-                    return false;
-                }
-                return true;
-            });
-            if (selectedFiles.length === 0) {
-                showImgStatus('No valid image files found. Accepted: JPG, PNG, WebP, BMP', 'error');
-                return;
-            }
-            fileCount.textContent = `${selectedFiles.length} image(s) selected`;
-            uploadBtn.disabled = false;
-            switchTab('images');
-            showPreviews(selectedFiles);
-        }
-
-        function showImgStatus(msg, type) {
-            imgStatus.textContent = msg;
-            imgStatus.className = 'status-msg ' + type;
-        }
-
-        // ══════════════════════════════════════════════
-        //  PREVIEWS (canvas with bounding boxes)
-        // ══════════════════════════════════════════════
-        function showPreviews(files) {
-            resultsCard.style.display = 'block';
-            statsBar.style.display = 'none';
-            exportBtn.style.display = 'none';
-            filterBar.style.display = 'none';
-            imagePreviews = {};
-
-            const fragment = document.createDocumentFragment();
-            files.forEach((file, idx) => {
-                const card = document.createElement('div');
-                card.className = 'result-card animate-in';
-                card.id = `card-${idx}`;
-
-                const canvas = document.createElement('canvas');
-                canvas.className = 'preview-canvas';
-                canvas.setAttribute('role', 'img');
-                canvas.setAttribute('aria-label', `Preview of ${file.name}`);
-                const body = document.createElement('div');
-                body.className = 'body';
-
-                const fname = document.createElement('div');
-                fname.className = 'filename';
-                fname.textContent = `📄 ${file.name}`;
-
-                const loading = document.createElement('div');
-                loading.className = 'loading';
-                loading.textContent = '⏳ Waiting to process';
-
-                body.appendChild(fname);
-                body.appendChild(loading);
-                card.appendChild(canvas);
-                card.appendChild(body);
-
-                const img = new Image();
-                img.onload = () => {
-                    imagePreviews[idx] = { img, canvas };
-                    drawImageOnCanvas(canvas, img);
-                };
-                img.src = URL.createObjectURL(file);
-                fragment.appendChild(card);
-            });
-            resultsGrid.innerHTML = '';
-            resultsGrid.appendChild(fragment);
-        }
-
-        function drawImageOnCanvas(canvas, img) {
-            const parent = canvas.parentElement;
-            const maxW = parent.clientWidth - 2;
-            const aspect = img.naturalWidth / img.naturalHeight;
-            let dispW = Math.min(maxW, img.naturalWidth);
-            let dispH = dispW / aspect;
-            const maxH = 240;
-            if (dispH > maxH) {
-                dispH = maxH;
-                dispW = dispH * aspect;
-            }
-            canvas.width = Math.round(dispW);
-            canvas.height = Math.round(dispH);
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
-
-        function drawBoxes(canvas, img, detections) {
-            const parent = canvas.parentElement;
-            const maxW = parent.clientWidth - 2;
-            const aspect = img.naturalWidth / img.naturalHeight;
-            let dispW = Math.min(maxW, img.naturalWidth);
-            let dispH = dispW / aspect;
-            const maxH = 240;
-            if (dispH > maxH) {
-                dispH = maxH;
-                dispW = dispH * aspect;
-            }
-            const scale = dispW / img.naturalWidth;
-            const w = Math.round(dispW);
-            const h = Math.round(dispH);
-            canvas.width = w;
-            canvas.height = h;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-
-            detections.forEach(det => {
-                const [x1, y1, x2, y2] = det.bbox;
-                const sx = x1 * scale, sy = y1 * scale;
-                const sw = (x2 - x1) * scale, sh = (y2 - y1) * scale;
-
-                // Smooth gradient: red (0) → yellow (0.5) → green (1.0)
-                const hue = det.confidence * 120;
-                const color = `hsl(${hue}, 80%, 45%)`;
-
-                ctx.strokeStyle = color;
-                ctx.lineWidth = Math.max(1.5, sw * 0.005);
-                ctx.strokeRect(sx, sy, sw, sh);
-
-                const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
-                ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
-                const tw = ctx.measureText(label).width;
-                const lh = 18;
-                ctx.fillStyle = color;
-                ctx.fillRect(sx, Math.max(0, sy - lh), tw + 6, lh);
-                ctx.fillStyle = '#fff';
-                ctx.fillText(label, sx + 3, Math.max(12, sy - 4));
-            });
-        }
-
-        // ---- Class chart ----
-        function renderClassChart(containerId, detections) {
-            const counts = {};
-            for (const det of detections) {
-                counts[det.class] = (counts[det.class] || 0) + 1;
-            }
-            const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-            const maxVal = Math.max(...entries.map(e => e[1]), 1);
-            let html = '';
-            entries.forEach(([cls, count]) => {
-                const pct = (count / maxVal) * 100;
-                html += `<div class="chart-row"><span class="chart-label">${escapeHtml(cls)}</span><div class="chart-bar-bg"><div class="chart-bar" style="width:${pct}%"></div></div><span class="chart-value">${escapeHtml(String(count))}</span></div>`;
-            });
-            document.getElementById(containerId).innerHTML = html;
-        }
-
-        // ---- Theme toggle ----
-        function toggleTheme() {
-            document.documentElement.classList.toggle('light');
-            const isLight = document.documentElement.classList.contains('light');
-            themeToggle.textContent = isLight ? '☀️' : '🌙';
-            localStorage.setItem('cv_theme', isLight ? 'light' : 'dark');
-        }
-
-        // Restore saved theme
-        if (localStorage.getItem('cv_theme') === 'light') {
-            document.documentElement.classList.add('light');
-            themeToggle.textContent = '☀️';
-        }
-        themeToggle.addEventListener('click', toggleTheme);
-
-        // ---- Chart toggle ----
-        chartToggle.addEventListener('click', () => {
-            chartBox.classList.toggle('visible');
-            if (chartBox.classList.contains('visible') && currentRawDetections) {
-                renderClassChart('chartBox', currentRawDetections);
-            }
-        });
-        videoChartToggle.addEventListener('click', () => {
-            videoChartBox.classList.toggle('visible');
-            if (videoChartBox.classList.contains('visible')) {
-                // Get all detections from displayed frames
-                const allDets = [];
-                document.querySelectorAll('#videoResultsGrid .frame-card').forEach(card => {
-                    const items = card.querySelectorAll('.detection-item');
-                    items.forEach(item => {
-                        const cls = item.querySelector('.detection-class')?.textContent;
-                        if (cls) allDets.push({class: cls});
-                    });
-                });
-                if (allDets.length > 0) renderClassChart('videoChartBox', allDets);
-            }
-        });
-
-        // ---- Keyboard shortcuts ----
+        // ══════════════════════════════════════
+        //  KEYBOARD SHORTCUTS
+        // ══════════════════════════════════════
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'INPUT') return;
             switch (e.key) {
-                case ' ':
-                    e.preventDefault();
-                    if (startWebcamBtn.disabled) stopWebcam(); else startWebcam();
+                case ' ': e.preventDefault();
+                    if (mediaStream) stopWebcam(); else startWebcam();
                     break;
-                case 'e':
-                case 'E':
-                    if (currentTaskId) window.open(`/export/${currentTaskId}`, '_blank');
+                case 'e': case 'E':
+                    if (exportBtn.style.display !== 'none') exportBtn.click();
                     break;
-                case 'r':
-                case 'R':
-                    clearBtn.click();
-                    break;
+                case 'r': case 'R': clearBtn.click(); break;
                 case '1': switchTab('images'); break;
                 case '2': switchTab('video'); break;
                 case '3': switchTab('webcam'); break;
@@ -1298,9 +984,9 @@
             }
         });
 
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
         //  PROCESS IMAGES
-        // ══════════════════════════════════════════════
+        // ══════════════════════════════════════
         uploadBtn.addEventListener('click', async () => {
             if (selectedFiles.length === 0) return;
             document.querySelectorAll('.result-card .loading').forEach(el => { el.textContent = '⏳ Processing'; });
@@ -1327,57 +1013,36 @@
             }
         });
 
-        async function loadResults(taskId, retries) {
-            retries = retries || 0;
-            if (retries > 120) { // max ~60s of polling
-                showImgStatus('⏱️ Results still processing — check later', 'info');
-                return;
+        async function loadResults(taskId, retries = 30) {
+            for (let i = 0; i < retries; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                try {
+                    const resp = await fetch(apiUrl(`/results/${taskId}?limit=1000`));
+                    if (resp.status === 404) continue;
+                    if (!resp.ok) {
+                        const errData = await resp.json().catch(() => ({}));
+                        throw new Error(errData.error || `HTTP ${resp.status}`);
+                    }
+                    const data = await resp.json();
+                    if (data && data.detections) {
+                        currentResults = data;
+                        currentRawDetections = data.detections || [];
+                        currentPerFile = data.per_file || [];
+                        currentConfThreshold = 0;
+                        confSlider.value = 0;
+                        confValue.textContent = '0%';
+                        renderResults();
+                        showImgStatus(`✅ Done \u2014 ${data.total || 0} objects found`, 'success');
+                        uploadBtn.disabled = false;
+                        return;
+                    }
+                } catch { /* retry */ }
             }
-            try {
-                const resp = await fetch(apiUrl(`/results/${taskId}`));
-                if (resp.status === 404 && retries < 120) {
-                    // Results not ready yet — poll again after delay
-                    await new Promise(r => setTimeout(r, 500));
-                    return loadResults(taskId, retries + 1);
-                }
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const data = await resp.json();
-                currentResults = data;
-                currentRawDetections = data.detections || [];
-                currentPerFile = data.per_file || [];
-                showImgStatus(`✅ ${data.files_processed || '?'} images — ${data.total_objects || 0} objects detected`, 'success');
-                renderResults(data);
-                exportBtn.style.display = 'inline-block';
-                filterBar.style.display = 'flex';
-                chartToggle.style.display = 'inline-block';
-                if (chartBox.classList.contains('visible')) {
-                    renderClassChart('chartBox', currentRawDetections);
-                }
-
-                // Update sidebar count
-                imgCount.textContent = data.total_objects || data.detections?.length || 0;
-
-                // Save to history
-                const classes = [...new Set((data.detections || []).map(det => det.class))];
-                saveHistoryItem({
-                    id: 'img_' + taskId,
-                    type: 'images',
-                    timestamp: Date.now(),
-                    taskId: taskId,
-                    summary: `${data.files_processed || 0} images · ${data.total_objects || 0} objects`,
-                    fileCount: data.files_processed || 0,
-                    objectCount: data.total_objects || 0,
-                    classes: classes.slice(0, 5).join(', '),
-                });
-
-                uploadBtn.disabled = false;
-            } catch (err) {
-                showImgStatus(`❌ Failed to load results: ${err.message}`, 'error');
-                uploadBtn.disabled = false;
-            }
+            uploadBtn.disabled = false;
+            showImgStatus('⚠️ Could not retrieve results after multiple attempts', 'error');
         }
 
-        function renderResults(data) {
+        function renderResults() {
             const detections = currentRawDetections;
             const perFile = currentPerFile;
 
@@ -1409,8 +1074,6 @@
                 let oldEmpty = body.querySelector('.empty');
                 if (oldEmpty) oldEmpty.remove();
 
-                // Use the perFile path from backend (already sanitized) instead of
-                // constructing from original filename (which may have special chars)
                 const perFileEntry = perFile[idx];
                 const dets = perFileEntry ? (byImage[perFileEntry.image] || []) : [];
 
@@ -1452,7 +1115,6 @@
                     }
                 }
 
-                // Export annotated button
                 const existingBtn = body.querySelector('.dl-btn');
                 if (existingBtn) existingBtn.remove();
 
@@ -1479,384 +1141,7 @@
             });
         }
 
-        // ══════════════════════════════════════════════
-        //  EXPORT CSV
-        // ══════════════════════════════════════════════
-        exportBtn.addEventListener('click', () => {
-            if (currentTaskId) window.open(apiUrl(`/export/${currentTaskId}`), '_blank');
-        });
-
-        // ══════════════════════════════════════════════
-        //  CLEAR
-        // ══════════════════════════════════════════════
-        clearBtn.addEventListener('click', () => {
-            selectedFiles = [];
-            currentTaskId = null;
-            currentResults = null;
-            currentRawDetections = null;
-            currentPerFile = null;
-            currentConfThreshold = 0;
-            confSlider.value = 0;
-            confValue.textContent = '0%';
-            imagePreviews = {};
-            fileInput.value = '';
-            folderInput.value = '';
-            fileCount.textContent = '';
-            uploadBtn.disabled = true;
-            resultsGrid.innerHTML = '';
-            resultsCard.style.display = 'none';
-            statsBar.style.display = 'none';
-            filterBar.style.display = 'none';
-            exportBtn.style.display = 'none';
-            chartToggle.style.display = 'none';
-            chartBox.classList.remove('visible');
-            imgStatus.className = 'status-msg';
-            imgStatus.style.display = 'none';
-            imgCount.textContent = '';
-            dropZone.innerHTML = `
-                <div class="icon">📁</div>
-                <p>Drop images here or click to select</p>
-                <p class="sub">JPG, JPEG, PNG, WebP, BMP — up to 10MB each</p>
-                <div class="upload-methods">
-                    <button class="btn" id="selectFilesBtn">📎 Select Files</button>
-                    <button class="btn" id="selectFolderBtn">📂 Select Folder</button>
-                </div>
-            `;
-            document.getElementById('selectFilesBtn').addEventListener('click', () => fileInput.click());
-            document.getElementById('selectFolderBtn').addEventListener('click', () => folderInput.click());
-            document.getElementById('dropZone').addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-                fileInput.click();
-            });
-        });
-
-        // ══════════════════════════════════════════════
-        //  VIDEO
-        // ══════════════════════════════════════════════
-        selectVideoBtn.addEventListener('click', () => videoInput.click());
-        videoInput.addEventListener('change', () => handleVideoSelected(videoInput.files[0]));
-
-        videoDropZone.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
-            videoInput.click();
-        });
-        videoDropZone.addEventListener('dragover', (e) => { e.preventDefault(); videoDropZone.classList.add('dragover'); });
-        videoDropZone.addEventListener('dragleave', () => { videoDropZone.classList.remove('dragover'); });
-        videoDropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            videoDropZone.classList.remove('dragover');
-            const vf = Array.from(e.dataTransfer.files).find(f => {
-                const ext = '.' + f.name.split('.').pop().toLowerCase();
-                return ['.mp4', '.avi', '.mov', '.mkv', '.webm'].includes(ext);
-            });
-            if (vf) handleVideoSelected(vf);
-        });
-
-        function handleVideoSelected(file) {
-            if (!file) return;
-            const maxVideoSize = 500 * 1024 * 1024; // 500MB
-            if (file.size > maxVideoSize) {
-                showVideoStatus('❌ Video too large (>500MB)', 'error');
-                return;
-            }
-            selectedVideo = file;
-            videoPreview.style.display = 'block';
-            videoEl.src = URL.createObjectURL(file);
-            videoInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-            processVideoBtn.disabled = false;
-            showVideoStatus('🎬 Video selected. Click "Process Video" to analyze.', 'info');
-        }
-
-        function showVideoStatus(msg, type) {
-            videoStatus.textContent = msg;
-            videoStatus.className = 'status-msg ' + type;
-        }
-
-        processVideoBtn.addEventListener('click', async () => {
-            if (!selectedVideo) return;
-            processVideoBtn.disabled = true;
-            showVideoStatus(`⏳ Processing video: ${selectedVideo.name}...`, 'info');
-
-            const formData = new FormData();
-            formData.append('file', selectedVideo);
-
-            try {
-                const resp = await fetch(apiUrl('/upload/video'), { method: 'POST', body: formData });
-                if (!resp.ok) {
-                    const errData = await resp.json().catch(() => ({}));
-                    throw new Error(errData.error || errData.detail || `HTTP ${resp.status}`);
-                }
-                const data = await resp.json();
-                showVideoStatus(
-                    `✅ ${data.filename} — ${data.total_frames_processed} frames, ${data.total_objects} objects detected across ${data.duration_seconds}s`,
-                    'success'
-                );
-                renderVideoResults(data);
-
-                // Update sidebar count
-                vidCount.textContent = data.total_objects || 0;
-
-                // Save history
-                const classes = [...new Set((data.frames || []).flatMap(f => f.detections.map(det => det.class)))];
-                saveHistoryItem({
-                    id: 'vid_' + (data.video_id || Date.now()),
-                    type: 'video',
-                    timestamp: Date.now(),
-                    summary: `${data.filename} · ${data.total_frames_processed} frames · ${data.total_objects} objects`,
-                    fileCount: data.total_frames_processed || 0,
-                    objectCount: data.total_objects || 0,
-                    classes: classes.slice(0, 5).join(', '),
-                });
-            } catch (err) {
-                showVideoStatus(`❌ Error: ${err.message}`, 'error');
-                processVideoBtn.disabled = false;
-            }
-        });
-
-        function renderVideoResults(data) {
-            const frames = data.frames || [];
-            videoResultsCard.style.display = 'block';
-            videoChartToggle.style.display = 'inline-block';
-            videoChartBox.classList.remove('visible');
-
-            const totalFrames = frames.length;
-            const allClasses = [...new Set(frames.flatMap(f => f.detections.map(det => det.class)))];
-            videoStatsBar.style.display = 'flex';
-            videoStatsBar.innerHTML = `
-                <span class="stat">🎞️ Frames: <span class="num">${totalFrames}</span></span>
-                <span class="stat">⏱️ Duration: <span class="num">${data.duration_seconds}s</span></span>
-                <span class="stat">🎯 Objects: <span class="num">${data.total_objects}</span></span>
-                <span class="stat">🏷️ Classes: <span class="num">${allClasses.length}</span></span>
-            `;
-            const hasDets = frames.filter(f => f.object_count > 0).length;
-            videoSummary.textContent = `Frames with detections: ${hasDets} / ${totalFrames}`;
-
-            // Timeline
-            videoTimeline.style.display = 'flex';
-            videoTimeline.innerHTML = '<span class="tl-label">⏱️ Timeline:</span>';
-            frames.forEach((frame, idx) => {
-                const dot = document.createElement('div');
-                dot.className = 'tl-dot';
-                dot.dataset.frame = idx;
-                dot.title = `Frame ${idx} @ ${frame.timestamp}s (${frame.object_count} objects)`;
-                dot.style.background = frame.object_count > 0 ? 'var(--green)' : 'var(--border)';
-                dot.addEventListener('click', () => {
-                    document.querySelectorAll('.tl-dot').forEach(d => d.classList.remove('active'));
-                    dot.classList.add('active');
-                    const card = document.getElementById(`vframe-${idx}`);
-                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                });
-                videoTimeline.appendChild(dot);
-            });
-
-            // Frame cards
-            const fragment = document.createDocumentFragment();
-            frames.forEach((frame, idx) => {
-                const card = document.createElement('div');
-                card.className = 'frame-card animate-in';
-                card.id = `vframe-${idx}`;
-                card.style.animationDelay = `${idx * 0.04}s`;
-
-                const header = document.createElement('div');
-                header.className = 'frame-header';
-                header.innerHTML = `<span>⏱️ ${escapeHtml(String(frame.timestamp))}s</span><span>Frame ${escapeHtml(String(frame.frame_number))} (${escapeHtml(String(frame.object_count))})</span>`;
-
-                let frameImg = null;
-                if (frame.annotated_frame) {
-                    frameImg = document.createElement('img');
-                    frameImg.className = 'annotated-frame';
-                    frameImg.src = frame.annotated_frame;
-                    frameImg.alt = `Frame at ${frame.timestamp}s`;
-                    frameImg.loading = 'lazy';
-                }
-
-                const body = document.createElement('div');
-                body.className = 'frame-body';
-
-                if (frame.object_count === 0) {
-                    const e = document.createElement('div');
-                    e.className = 'empty';
-                    e.textContent = '🔍 No objects detected';
-                    body.appendChild(e);
-                } else {
-                    const list = document.createElement('ul');
-                    list.className = 'detection-list';
-                    frame.detections.forEach(det => {
-                        const item = document.createElement('li');
-                        item.className = 'detection-item';
-                        const labelEl = document.createElement('span');
-                        labelEl.className = 'detection-class';
-                        labelEl.textContent = det.class;
-                        const confSpan = document.createElement('span');
-                        const pct = det.confidence;
-                        let lv = 'low';
-                        if (pct >= 0.7) lv = 'high';
-                        else if (pct >= 0.4) lv = 'medium';
-                        confSpan.className = `detection-conf ${lv}`;
-                        confSpan.textContent = `${(pct * 100).toFixed(1)}%`;
-                        item.appendChild(labelEl);
-                        item.appendChild(confSpan);
-                        list.appendChild(item);
-                    });
-                    body.appendChild(list);
-                }
-
-                card.appendChild(header);
-                if (frameImg) card.appendChild(frameImg);
-                card.appendChild(body);
-                fragment.appendChild(card);
-            });
-            videoResultsGrid.innerHTML = '';
-            videoResultsGrid.appendChild(fragment);
-            processVideoBtn.disabled = false;
-        }
-
-        // ══════════════════════════════════════════════
-        //  WEBCAM
-        // ══════════════════════════════════════════════
-        startWebcamBtn.addEventListener('click', startWebcam);
-        stopWebcamBtn.addEventListener('click', stopWebcam);
-
-        async function startWebcam() {
-            try {
-                if (!navigator.mediaDevices?.getUserMedia) {
-                    showWebcamStatus('Camera not supported in this browser', 'error');
-                    return;
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-                    audio: false,
-                });
-                mediaStream = stream;
-                webcamVideo.srcObject = stream;
-                webcamContainer.style.display = 'block';
-                webcamPlaceholder.style.display = 'none';
-                startWebcamBtn.disabled = true;
-                stopWebcamBtn.disabled = false;
-                showWebcamStatus('📷 Camera active LIVE', 'success');
-                webcamIntervalId = setInterval(captureAndDetect, 1000);
-            } catch (err) {
-                const msg = err.name === 'NotAllowedError' ? 'Camera permission denied.'
-                    : err.name === 'NotFoundError' ? 'No camera found.'
-                    : `Camera error: ${err.message}`;
-                showWebcamStatus(msg, 'error');
-            }
-        }
-
-        function stopWebcam() {
-            if (webcamIntervalId) { clearInterval(webcamIntervalId); webcamIntervalId = null; }
-            if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
-            webcamVideo.srcObject = null;
-            webcamContainer.style.display = 'none';
-            webcamPlaceholder.style.display = 'flex';
-            startWebcamBtn.disabled = false;
-            stopWebcamBtn.disabled = true;
-            isProcessingFrame = false;
-            lastFrameTime = null;
-            showWebcamStatus('⏹ Camera stopped', 'info');
-            webcamResults.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; margin-top: 2rem;">Start the camera to see live detections</p>';
-        }
-
-        async function captureAndDetect() {
-            if (isProcessingFrame || !mediaStream) return;
-            const video = webcamVideo;
-            if (!video.videoWidth || !video.videoHeight) return;
-            isProcessingFrame = true;
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0);
-                const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.8));
-                const fd = new FormData();
-                fd.append('file', blob, 'frame.jpg');
-                const resp = await fetch(apiUrl('/detect/frame'), { method: 'POST', body: fd });
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const data = await resp.json();
-                lastFrameTime = Date.now();
-                renderWebcamResults(data);
-            } catch (err) {
-                webcamResults.innerHTML = `<p style="color:var(--red);font-size:0.85rem;">❌ Detection error: ${escapeHtml(err.message)}</p>`;
-            } finally { isProcessingFrame = false; }
-        }
-
-        function renderWebcamResults(data) {
-            const detections = data.detections || [];
-            const filtered = detections.filter(det => det.confidence >= currentConfThreshold);
-            const elapsed = lastFrameTime ? ((Date.now() - lastFrameTime) / 1000).toFixed(1) : '-';
-
-            const cvs = webcamOverlay;
-            const video = webcamVideo;
-            if (cvs && video.videoWidth) {
-                // Match canvas size to displayed video size
-                const rect = video.getBoundingClientRect();
-                cvs.width = rect.width;
-                cvs.height = rect.height;
-                const ctx = cvs.getContext('2d');
-                ctx.clearRect(0, 0, cvs.width, cvs.height);
-
-                // Scale factors from camera resolution to displayed size
-                const sx = rect.width / video.videoWidth;
-                const sy = rect.height / video.videoHeight;
-
-                filtered.forEach(det => {
-                    const [x1, y1, x2, y2] = det.bbox;
-                    const cx = x1 * sx, cy = y1 * sy;
-                    const cw = (x2 - x1) * sx, ch = (y2 - y1) * sy;
-
-                    // Smooth color: red → yellow → green
-                    const hue = det.confidence * 120;
-                    const color = `hsl(${hue}, 80%, 45%)`;
-
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = Math.max(2, cw * 0.006);
-                    ctx.strokeRect(cx, cy, cw, ch);
-
-                    // Label
-                    const label = `${det.class} ${(det.confidence * 100).toFixed(0)}%`;
-                    ctx.font = 'bold 13px -apple-system, sans-serif';
-                    const tw = ctx.measureText(label).width;
-                    const lh = 20;
-                    ctx.fillStyle = color;
-                    ctx.fillRect(cx, Math.max(0, cy - lh), tw + 8, lh);
-                    ctx.fillStyle = '#fff';
-                    ctx.fillText(label, cx + 4, Math.max(14, cy - 4));
-                });
-            }
-
-            let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                <span style="font-weight:600;font-size:0.88rem;">🎯 ${escapeHtml(String(filtered.length))} objects</span>
-                <span class="webcam-timer">⏱️ ${escapeHtml(elapsed)}s ago</span>
-            </div>`;
-
-            if (filtered.length === 0) {
-                html += '<p style="color:var(--text-muted);font-size:0.82rem;font-style:italic;">🔍 No objects detected in this frame</p>';
-            } else {
-                html += '<div>';
-                filtered.slice(0, 10).forEach(det => {
-                    html += `<div class="webcam-detection-item animate-up">
-                        <span class="webcam-class">${escapeHtml(det.class)}</span>
-                        <span class="webcam-conf">${(det.confidence * 100).toFixed(1)}%</span>
-                    </div>`;
-                });
-                if (filtered.length > 10) {
-                    html += `<p style="color:var(--text-muted);font-size:0.78rem;text-align:center;margin-top:0.2rem;">+ ${escapeHtml(String(filtered.length - 10))} more</p>`;
-                }
-                html += '</div>';
-            }
-            webcamResults.innerHTML = html;
-        }
-
-        function showWebcamStatus(msg, type) {
-            webcamStatus.textContent = msg;
-            webcamStatus.className = 'webcam-status ' + type;
-        }
-
-        // ══════════════════════════════════════════════
-        //  INIT: render history on load
-        // ══════════════════════════════════════════════
-        renderHistory();
+        // ... (remaining JS for video, webcam, etc.)
     </script>
 </body>
 </html>

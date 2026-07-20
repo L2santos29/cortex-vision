@@ -1,11 +1,8 @@
-"""Batch image processing pipeline.
-
-Handles batched detection across multiple images,
-result aggregation, and optional LLM-powered scene descriptions.
-"""
-
 from .detector import Detector
 from .profiling import timed
+
+# Number of top classes to include in summary stats
+TOP_CLASSES_COUNT = 5
 
 
 class BatchPipeline:
@@ -42,6 +39,13 @@ class BatchPipeline:
                     "detections": detections,
                     "object_count": len(detections),
                 })
+            except (FileNotFoundError, RuntimeError) as exc:
+                results.append({
+                    "image": path,
+                    "detections": [],
+                    "object_count": 0,
+                    "error": str(exc),
+                })
             except Exception as exc:
                 results.append({
                     "image": path,
@@ -76,7 +80,7 @@ class BatchPipeline:
         """Compute per-class counts and summary statistics.
 
         Returns total detections, unique class count, a per-class histogram,
-        and the top-5 most frequent classes - useful for the batch results
+        and the top `TOP_CLASSES_COUNT` most frequent classes - useful for the batch results
         dashboard and CSV export.
         """
         class_counts = {}
@@ -92,5 +96,5 @@ class BatchPipeline:
             "per_class": class_counts,
             "top_classes": sorted(
                 class_counts.items(), key=lambda x: x[1], reverse=True
-            )[:5],
+            )[:TOP_CLASSES_COUNT],
         }

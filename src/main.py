@@ -1,5 +1,3 @@
-"""Cortex-Vision main entry point — FastAPI application."""
-
 import asyncio
 import logging
 import time
@@ -27,7 +25,7 @@ from .middleware import (
 )
 from .pipeline import BatchPipeline
 from .services import DetectionService
-from .utils import ALLOWED_VIDEO_EXTENSIONS, MAX_VIDEO_SIZE
+from .utils import ALLOWED_VIDEO_EXTENSIONS
 
 # ---- Named constants (STY-08) ----
 COOKIE_MAX_AGE = 86400  # 24 hours in seconds
@@ -97,7 +95,13 @@ async def index() -> Response:
     """Serve the web UI (public, no auth required)."""
     index_path = static_dir / "index.html"
     if index_path.exists():
-        html = index_path.read_text()
+        try:
+            html = await asyncio.to_thread(index_path.read_text)
+        except OSError as exc:
+            logger.error("Failed to read static UI %s: %s", index_path, exc)
+            return HTMLResponse(
+                content="<h1>Cortex-Vision API</h1><p>Could not load UI.</p>"
+            )
         response = HTMLResponse(content=html)
         response.set_cookie(
             key="api_key",
@@ -140,8 +144,14 @@ async def upload_image(
 
     try:
         results = await service.run_detection(str(image_path))
-    except Exception as exc:
+    except asyncio.TimeoutError:
+        logger.error("Detection timed out for %s", image_path)
+        return JSONResponse({"error": "Detection timed out"}, status_code=504)
+    except RuntimeError as exc:
         logger.error("Detection failed for %s: %s", image_path, exc)
+        return JSONResponse({"error": "Detection failed"}, status_code=500)
+    except Exception as exc:
+        logger.error("Unexpected detection error for %s: %s", image_path, exc)
         return JSONResponse({"error": "Detection failed"}, status_code=500)
 
     logger.info("Processed image %s (%d detections)", file.filename, len(results))
@@ -239,8 +249,14 @@ async def detect_frame(
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
             return JSONResponse({"error": "Invalid image data"}, status_code=400)
-    except Exception as exc:
+    except ValueError as exc:
+        logger.error("Frame buffer conversion failed: %s", exc)
+        return JSONResponse({"error": "Failed to decode frame"}, status_code=400)
+    except cv2.error as exc:
         logger.error("Frame decode failed: %s", exc)
+        return JSONResponse({"error": "Failed to decode frame"}, status_code=400)
+    except Exception as exc:
+        logger.error("Unexpected frame error: %s", exc)
         return JSONResponse({"error": "Failed to decode frame"}, status_code=400)
 
     try:
@@ -248,8 +264,11 @@ async def detect_frame(
     except asyncio.TimeoutError:
         logger.error("Frame detection timed out")
         return JSONResponse({"error": "Detection timed out"}, status_code=504)
-    except Exception as exc:
+    except RuntimeError as exc:
         logger.error("Frame detection failed: %s", exc)
+        return JSONResponse({"error": "Detection failed"}, status_code=500)
+    except Exception as exc:
+        logger.error("Unexpected frame detection error: %s", exc)
         return JSONResponse({"error": "Detection failed"}, status_code=500)
 
     return JSONResponse({
@@ -286,7 +305,7 @@ async def export_csv(
     api_key: str = Depends(verify_api_key),
 ) -> FileResponse | JSONResponse:
     """Export batch results as CSV."""
-    csv_path = service.export_batch_csv(task_id)
+    csv_path = await service.export_batch_csv(task_id)
     if csv_path is None:
         return JSONResponse({"error": "Task not found"}, status_code=404)
     return FileResponse(csv_path, filename=f"cortex-vision-{task_id}.csv")
