@@ -1,15 +1,15 @@
 # =============================================================================
 # Cortex-Vision — Staging Environment
 # =============================================================================
-# Uso: docker compose -f docker-compose.staging.yml up -d
+# Usage: docker compose -f docker-compose.staging.yml up -d
 #
-# Diferencias con dev:
-#   - TLS automático con Caddy (Let's Encrypt)
-#   - Límites de recursos (memoria, CPU)
-#   - Políticas de restart
-#   - Logging configurado (tamaño máximo, rotación)
-#   - Red aislada
-#   - Sin mounts de desarrollo (copia estática del código)
+# Differences from dev:
+#   - Automatic TLS with Caddy (Let's Encrypt)
+#   - Resource limits (memory, CPU)
+#   - Restart policies
+#   - Configured logging (max size, rotation)
+#   - Isolated network
+#   - No development mounts (static code copy)
 # =============================================================================
 
 services:
@@ -38,9 +38,9 @@ services:
     expose:
       - "8000"
     environment:
-      # Requeridas — crásh si no están definidas
+      # Required — crash if not defined
       - API_KEY=${API_KEY:?API_KEY is required}
-      # Opcionales con defaults seguros para staging
+      # Optional with safe defaults for staging
       - CORS_ORIGINS=${CORS_ORIGINS:-https://staging.example.com}
       - RATE_LIMIT=${RATE_LIMIT:-60}
       - RATE_WINDOW=${RATE_WINDOW:-60}
@@ -50,7 +50,7 @@ services:
     volumes:
       - uploads:/app/uploads
       - output:/app/output
-    # Límites de recursos
+    # Resource limits
     deploy:
       resources:
         limits:
@@ -59,7 +59,7 @@ services:
         reservations:
           memory: 512M
           cpus: "0.5"
-    # Health check para orquestación
+    # Health check for orchestration
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s

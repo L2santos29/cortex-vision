@@ -217,54 +217,54 @@ The application reads environment variables from `.env` automatically via `pydan
 
 ## Staging Environment
 
-Usa la configuración específica de staging con TLS automático, límites de recursos y health checks:
+Use the staging-specific configuration with automatic TLS, resource limits, and health checks:
 
 ```bash
-# Requisitos: API_KEY definida
+# Prerequisites: API_KEY must be set
 export API_KEY=$(openssl rand -hex 32)
 
-# Iniciar entorno staging (Caddy + App)
+# Start staging environment (Caddy + App)
 docker compose -f deploy/docker-compose.staging.yml up -d
 
-# Verificar estado
+# Verify health status
 curl -f http://localhost:8000/health
 
-# Ver logs
+# View logs
 docker compose -f deploy/docker-compose.staging.yml logs -f
 ```
 
-El compose de staging incluye:
-- **Caddy** como reverse proxy con TLS automático (Let's Encrypt)
-- **Límites de memoria** (2GB max, 512MB reservados)
-- **Límites de CPU** (2 cores max, 0.5 reservados)
-- **Política de restart** (`unless-stopped`)
-- **Health check** cada 30s para orquestación
-- **Logging** con rotación (10MB por archivo, max 3 archivos)
-- **Red aislada** (bridge)
+The staging compose includes:
+- **Caddy** as reverse proxy with automatic TLS (Let's Encrypt)
+- **Memory limits** (2GB max, 512MB reserved)
+- **CPU limits** (2 cores max, 0.5 reserved)
+- **Restart policy** (`unless-stopped`)
+- **Health check** every 30s for orchestration
+- **Logging** with rotation (10MB per file, max 3 files)
+- **Isolated network** (bridge)
 
-### Despliegue automatizado (CI/CD)
+### Automated Deployment (CI/CD)
 
-El workflow `.github/workflows/deploy-staging.yml` se ejecuta automáticamente
-en cada push a `main`:
-1. Construye la imagen Docker
-2. Guarda el artefacto para deploy
-3. (Opcional) Despliega vía SSH al servidor de staging
+The `.github/workflows/deploy-staging.yml` workflow runs automatically
+on every push to `main`:
+1. Builds the Docker image
+2. Saves the artifact for deployment
+3. (Optional) Deploys via SSH to the staging server
 
-> Los tests con cobertura se ejecutan en `.github/workflows/ci.yml` y son requisito
-> para que el deploy proceda.
+> Coverage tests run in `.github/workflows/ci.yml` and are a prerequisite
+> for the deployment to proceed.
 
-Para activar el deploy remoto, configura los secrets en GitHub:
+To enable remote deployment, configure the following secrets in GitHub:
 - `STAGING_HOST`
 - `STAGING_USER`
 - `STAGING_SSH_KEY`
 
 ### Staging Checklist
 
-- [ ] Generar `API_KEY` fuerte: `openssl rand -hex 32`
-- [ ] Configurar `CORS_ORIGINS` con el dominio de staging
-- [ ] Editar `deploy/Caddyfile` con el dominio real
-- [ ] Verificar que el health check responde
-- [ ] Monitorear `/health` y `/metrics`
+- [ ] Generate a strong `API_KEY`: `openssl rand -hex 32`
+- [ ] Configure `CORS_ORIGINS` with the staging domain
+- [ ] Edit `deploy/Caddyfile` with the real domain
+- [ ] Verify the health check responds
+- [ ] Monitor `/health` and `/metrics`
 
 ---
 

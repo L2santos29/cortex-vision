@@ -28,8 +28,8 @@ jobs:
           path: cortex-vision-staging.tar.gz
           retention-days: 7
 
-      # Opcional: desplegar en un servidor remoto vía SSH.
-      # Para activarlo, configura los secrets en GitHub:
+      # Optional: deploy to a remote server via SSH.
+      # To activate it, configure the following secrets in GitHub:
       #   STAGING_HOST, STAGING_USER, STAGING_SSH_KEY
       #- name: Deploy to staging server
       #  uses: appleboy/ssh-action@v1
